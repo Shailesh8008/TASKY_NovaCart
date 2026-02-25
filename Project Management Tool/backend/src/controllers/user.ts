@@ -59,7 +59,7 @@ const login = async (req: Request, res: Response) => {
     email?: string;
     pass?: string;
   };
-  
+
   if (!email || !pass) {
     return res.status(400).json({
       ok: false,
@@ -130,9 +130,23 @@ const login = async (req: Request, res: Response) => {
   }
 };
 
+const logout = async (req: Request, res: Response) => {
+  try {
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.ENV === "prod",
+      sameSite: process.env.ENV === "prod" ? "none" : "lax",
+    });
+    return res.json({ ok: true, message: "Successfully Logout" });
+  } catch (error) {
+    res.json({ ok: false, message: "Internal server error" });
+  }
+};
+
 const userController = {
   checkUser,
   register,
   login,
+  logout,
 };
 export default userController;
