@@ -160,7 +160,7 @@ const Login: React.FC = () => {
         <button
           type="submit"
           disabled={wait}
-          className={`w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all flex items-center justify-center gap-2 group cursor-pointer ${
+          className={`w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all flex items-center justify-center gap-2 group ${
             wait ? "opacity-75 cursor-not-allowed" : "cursor-pointer"
           }`}
         >
@@ -187,7 +187,7 @@ const Login: React.FC = () => {
             </svg>
           ) : null}
           {wait ? (
-            "Please wait..."
+            "please wait..."
           ) : (
             <>
               Sign In

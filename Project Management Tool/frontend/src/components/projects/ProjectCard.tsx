@@ -1,12 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import { calculateProjectProgress, calculateProjectStatus, formatDeadline } from "./projectUtils";
 import type { Project } from "./types";
 
 interface ProjectCardProps {
   project: Project;
-  onView: (projectId: string) => void;
-  onEdit: (project: Project) => void;
-  onDelete: (project: Project) => void;
+  onView: (projectId: string) => Promise<void> | void;
+  onEdit: (project: Project) => Promise<void> | void;
+  onDelete: (project: Project) => Promise<void> | void;
 }
 
 const statusStyles: Record<"Not Started" | "In Progress" | "Completed", string> = {
@@ -18,6 +18,31 @@ const statusStyles: Record<"Not Started" | "In Progress" | "Completed", string> 
 const ProjectCard: React.FC<ProjectCardProps> = ({ project, onView, onEdit, onDelete }) => {
   const progress = calculateProjectProgress(project.tasks);
   const status = calculateProjectStatus(project.tasks);
+  const [wait, setWait] = useState<"view" | "edit" | "delete" | null>(null);
+  const isWaiting = wait !== null;
+
+  const handleAction = async (action: "view" | "edit" | "delete") => {
+    if (isWaiting) {
+      return;
+    }
+
+    setWait(action);
+    try {
+      if (action === "view") {
+        await onView(project.id);
+        return;
+      }
+
+      if (action === "edit") {
+        await onEdit(project);
+        return;
+      }
+
+      await onDelete(project);
+    } finally {
+      setWait(null);
+    }
+  };
 
   return (
     <article className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
@@ -53,24 +78,111 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onView, onEdit, onDe
       <div className="mt-5 flex flex-wrap gap-2">
         <button
           type="button"
-          className="px-3 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer"
-          onClick={() => onView(project.id)}
+          disabled={isWaiting}
+          className={`px-3 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center justify-center ${
+            isWaiting ? "opacity-75 cursor-not-allowed" : "cursor-pointer"
+          }`}
+          onClick={() => handleAction("view")}
         >
-          View Details
+          {wait === "view" ? (
+            <>
+              <svg
+                className="animate-spin -ml-1 mr-1 h-5 w-5 text-gray-700"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              please wait...
+            </>
+          ) : (
+            "View Details"
+          )}
         </button>
         <button
           type="button"
-          className="px-3 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
-          onClick={() => onEdit(project)}
+          disabled={isWaiting}
+          className={`px-3 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center ${
+            isWaiting ? "opacity-75 cursor-not-allowed" : "cursor-pointer"
+          }`}
+          onClick={() => handleAction("edit")}
         >
-          Edit
+          {wait === "edit" ? (
+            <>
+              <svg
+                className="animate-spin -ml-1 mr-1 h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              please wait...
+            </>
+          ) : (
+            "Edit"
+          )}
         </button>
         <button
           type="button"
-          className="px-3 py-2 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 cursor-pointer"
-          onClick={() => onDelete(project)}
+          disabled={isWaiting}
+          className={`px-3 py-2 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 flex items-center justify-center ${
+            isWaiting ? "opacity-75 cursor-not-allowed" : "cursor-pointer"
+          }`}
+          onClick={() => handleAction("delete")}
         >
-          Delete
+          {wait === "delete" ? (
+            <>
+              <svg
+                className="animate-spin -ml-1 mr-1 h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              please wait...
+            </>
+          ) : (
+            "Delete"
+          )}
         </button>
       </div>
     </article>

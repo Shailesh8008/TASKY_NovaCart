@@ -143,10 +143,46 @@ const logout = async (req: Request, res: Response) => {
   }
 };
 
+const createProject = async (req: Request, res: Response) => {
+  const { name, description, deadline, teamMembers } = req.body as {
+    name?: string;
+    description?: string;
+    deadline?: string;
+    teamMembers?: string[];
+  };
+
+  if (!name || !description || !deadline) {
+    return res
+      .status(400)
+      .json({ ok: false, message: "All fields are required" });
+  }
+
+  try {
+    const project = await prisma.project.create({
+      data: {
+        name,
+        description,
+        deadline: new Date(deadline),
+        ownerId: req.user!.id,
+        teamMembers: teamMembers || [],
+      },
+    });
+    return res
+      .status(201)
+      .json({ ok: true, message: "Project created successfully", project });
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(500)
+      .json({ ok: false, message: "Internal server error" });
+  }
+};
+
 const userController = {
   checkUser,
   register,
   login,
   logout,
+  createProject,
 };
 export default userController;

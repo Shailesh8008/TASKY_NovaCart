@@ -25,4 +25,18 @@ model User {
   password  String
   role      Role     @default(MEMBER)
   createdAt DateTime @default(now())
+  projects  Project[]
+}
+
+model Project {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String
+  deadline    DateTime
+  ownerId     Int
+  teamMembers String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 }

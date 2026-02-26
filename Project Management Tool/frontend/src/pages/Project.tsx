@@ -5,19 +5,30 @@ import ProjectCard from "../components/projects/ProjectCard";
 import ProjectFilters from "../components/projects/ProjectFilters";
 import ProjectFormModal from "../components/projects/ProjectFormModal";
 import { calculateProjectStatus } from "../components/projects/projectUtils";
-import type { Project, ProjectInput, ProjectStatus } from "../components/projects/types";
+import type {
+  Project,
+  ProjectInput,
+  ProjectStatus,
+} from "../components/projects/types";
 import { useProjects } from "../hooks/useProjects";
+import toast from "react-hot-toast";
+
+const backendUrl = import.meta.env.VITE_BACKEND_URL ?? "";
 
 const ProjectPage: React.FC = () => {
   const navigate = useNavigate();
-  const { projects, createProject, updateProject, deleteProject } = useProjects();
+  const { projects, createProject, updateProject, deleteProject } =
+    useProjects();
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"All" | ProjectStatus>("All");
+  const [statusFilter, setStatusFilter] = useState<"All" | ProjectStatus>(
+    "All",
+  );
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [wait, setWait] = useState(false);
 
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
 
@@ -31,7 +42,8 @@ const ProjectPage: React.FC = () => {
         project.description.toLowerCase().includes(normalizedSearch);
 
       const derivedStatus = calculateProjectStatus(project.tasks);
-      const matchesStatus = statusFilter === "All" || derivedStatus === statusFilter;
+      const matchesStatus =
+        statusFilter === "All" || derivedStatus === statusFilter;
 
       return matchesSearch && matchesStatus;
     });
@@ -49,10 +61,44 @@ const ProjectPage: React.FC = () => {
     setIsFormOpen(true);
   };
 
-  const handleSubmitProject = (values: ProjectInput) => {
+  const handleSubmitProject = async (values: ProjectInput) => {
+    if (wait) {
+      return;
+    }
+
     if (formMode === "create") {
-      createProject(values);
-      setIsFormOpen(false);
+      setWait(true);
+      try {
+        const response = await fetch(`${backendUrl}/api/create-project`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify(values),
+        });
+
+        const data = (await response.json().catch(() => null)) as {
+          ok?: boolean;
+          message?: string;
+        } | null;
+
+        if (!response.ok || data?.ok === false) {
+          const message =
+            data?.message ||
+            `Failed to create project (HTTP ${response.status})`;
+          toast.error(message);
+          return;
+        }
+
+        createProject(values);
+        setIsFormOpen(false);
+        toast.success("Project created successfully");
+      } catch {
+        toast.error("Unable to connect to server");
+      } finally {
+        setWait(false);
+      }
       return;
     }
 
@@ -60,8 +106,13 @@ const ProjectPage: React.FC = () => {
       return;
     }
 
-    updateProject(editingProject.id, values);
-    setIsFormOpen(false);
+    setWait(true);
+    try {
+      updateProject(editingProject.id, values);
+      setIsFormOpen(false);
+    } finally {
+      setWait(false);
+    }
   };
 
   return (
@@ -70,7 +121,9 @@ const ProjectPage: React.FC = () => {
         <section className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Projects</h1>
-            <p className="text-gray-600 mt-1">Manage all projects, deadlines, and team assignments.</p>
+            <p className="text-gray-600 mt-1">
+              Manage all projects, deadlines, and team assignments.
+            </p>
           </div>
           <button
             type="button"
@@ -111,8 +164,14 @@ const ProjectPage: React.FC = () => {
         key={`${isFormOpen}-${formMode}-${editingProject?.id ?? "new"}`}
         isOpen={isFormOpen}
         mode={formMode}
+        wait={wait}
         initialProject={editingProject}
-        onClose={() => setIsFormOpen(false)}
+        onClose={() => {
+          if (wait) {
+            return;
+          }
+          setIsFormOpen(false);
+        }}
         onSubmit={handleSubmitProject}
       />
 
