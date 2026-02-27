@@ -6,6 +6,8 @@ import userController from "../controllers/user";
 apiRouter.get("/health", (req, res) => res.json({ response: "ok" }));
 apiRouter.get("/api/auth/user", auth, userController.checkUser);
 apiRouter.get("/api/get-users", userController.getUsers);
+apiRouter.get("/api/dashboard", auth, userController.getDashboardOverview);
+apiRouter.get("/api/my-projects", auth, userController.getMyProjects);
 
 apiRouter.post("/api/register", userController.register);
 apiRouter.post("/api/login", userController.login);

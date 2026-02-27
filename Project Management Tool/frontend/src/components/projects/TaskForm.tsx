@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import CustomSelect from "../CustomSelect";
 import type { ProjectTask, TaskInput, TaskStatus } from "./types";
 
 interface TaskFormProps {
   mode: "create" | "edit";
   teamMembers: string[];
+  teamMemberLabels?: Record<string, string>;
   initialTask?: ProjectTask | null;
   onSubmit: (values: TaskInput) => void;
   onCancel?: () => void;
@@ -37,9 +38,31 @@ const buildInitialForm = (
   };
 };
 
-const TaskForm: React.FC<TaskFormProps> = ({ mode, teamMembers, initialTask = null, onSubmit, onCancel }) => {
+const TaskForm: React.FC<TaskFormProps> = ({
+  mode,
+  teamMembers,
+  teamMemberLabels,
+  initialTask = null,
+  onSubmit,
+  onCancel,
+}) => {
   const [form, setForm] = useState<TaskInput>(() => buildInitialForm(mode, initialTask, teamMembers));
-  const safeAssignee = teamMembers.includes(form.assignee) ? form.assignee : (teamMembers[0] ?? "");
+  const fallbackAssignee = teamMembers[0] ?? "";
+  const safeAssignee = teamMembers.includes(form.assignee)
+    ? form.assignee
+    : form.assignee || fallbackAssignee;
+  const assigneeOptions = useMemo(() => {
+    const baseOptions = teamMembers.map((memberId) => ({
+      value: memberId,
+      label: teamMemberLabels?.[memberId] ?? memberId,
+    }));
+
+    if (safeAssignee && !teamMembers.includes(safeAssignee)) {
+      return [{ value: safeAssignee, label: safeAssignee }, ...baseOptions];
+    }
+
+    return baseOptions;
+  }, [teamMembers, teamMemberLabels, safeAssignee]);
 
   const updateField = <K extends keyof TaskInput>(field: K, value: TaskInput[K]) => {
     setForm((previous) => ({ ...previous, [field]: value }));
@@ -52,7 +75,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ mode, teamMembers, initialTask = nu
     if (mode === "create") {
       setForm({
         ...emptyState,
-        assignee: teamMembers[0] ?? "",
+        assignee: fallbackAssignee,
       });
     }
   };
@@ -74,7 +97,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ mode, teamMembers, initialTask = nu
           onChange={(value) => updateField("assignee", value)}
           disabled={teamMembers.length === 0}
           placeholder="No team members"
-          options={teamMembers.map((member) => ({ value: member, label: member }))}
+          options={assigneeOptions}
         />
       </div>
 

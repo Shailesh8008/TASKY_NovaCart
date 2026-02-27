@@ -8,15 +8,66 @@ import { calculateProjectProgress, calculateProjectStatus, findProjectById, form
 import type { ProjectTask, TaskInput } from "../components/projects/types";
 import { useProjects } from "../hooks/useProjects";
 
+const backendUrl = import.meta.env.VITE_BACKEND_URL ?? "";
+
+interface UserSummary {
+  id: string;
+  name: string;
+  email: string;
+}
+
 const ProjectDetails: React.FC = () => {
   const navigate = useNavigate();
   const { projectId = "" } = useParams();
   const { projects, addTask, updateTask, deleteTask, updateTaskStatus } = useProjects();
+  const [users, setUsers] = useState<UserSummary[]>([]);
 
   const project = useMemo(() => findProjectById(projects, projectId), [projects, projectId]);
 
   const [editingTask, setEditingTask] = useState<ProjectTask | null>(null);
   const [deletingTask, setDeletingTask] = useState<ProjectTask | null>(null);
+
+  React.useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch(`${backendUrl}/api/get-users`, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        const payload = (await response.json().catch(() => null)) as
+          | UserSummary[]
+          | { users?: UserSummary[]; data?: UserSummary[] }
+          | null;
+
+        if (!response.ok) {
+          setUsers([]);
+          return;
+        }
+
+        const nextUsers = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.users)
+            ? payload.users
+            : Array.isArray(payload?.data)
+              ? payload.data
+              : [];
+
+        setUsers(
+          nextUsers.filter(
+            (user) =>
+              typeof user?.id === "string" &&
+              typeof user?.name === "string" &&
+              typeof user?.email === "string",
+          ),
+        );
+      } catch {
+        setUsers([]);
+      }
+    };
+
+    void fetchUsers();
+  }, []);
 
   if (!project) {
     return (
@@ -34,6 +85,13 @@ const ProjectDetails: React.FC = () => {
 
   const progress = calculateProjectProgress(project.tasks);
   const projectStatus = calculateProjectStatus(project.tasks);
+  const teamMemberLabels = users.reduce<Record<string, string>>((accumulator, user) => {
+    accumulator[user.id] = `${user.name} (${user.email})`;
+    return accumulator;
+  }, {});
+  const teamMemberDisplay = project.teamMembers.map(
+    (memberId) => teamMemberLabels[memberId] ?? memberId,
+  );
 
   const completedTasks = project.tasks.filter((task) => task.status === "Completed").length;
 
@@ -101,13 +159,26 @@ const ProjectDetails: React.FC = () => {
         <section className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
           <h2 className="text-xl font-semibold text-gray-900">Add Task</h2>
           <p className="text-sm text-gray-600 mt-1 mb-4">Create tasks and assign them to project members.</p>
-          <TaskForm mode="create" teamMembers={project.teamMembers} onSubmit={handleAddTask} />
+          <TaskForm
+            mode="create"
+            teamMembers={project.teamMembers}
+            teamMemberLabels={teamMemberLabels}
+            onSubmit={handleAddTask}
+          />
+        </section>
+
+        <section className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Team Members</h2>
+          <p className="text-sm text-gray-600">
+            {teamMemberDisplay.length > 0 ? teamMemberDisplay.join(", ") : "No members"}
+          </p>
         </section>
 
         <section className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Task List</h2>
           <TaskList
             tasks={project.tasks}
+            assigneeLabels={teamMemberLabels}
             onEdit={setEditingTask}
             onDelete={setDeletingTask}
             onStatusChange={(taskId, nextStatus) => updateTaskStatus(project.id, taskId, nextStatus)}
@@ -124,6 +195,7 @@ const ProjectDetails: React.FC = () => {
             <TaskForm
               mode="edit"
               teamMembers={project.teamMembers}
+              teamMemberLabels={teamMemberLabels}
               initialTask={editingTask}
               onSubmit={handleUpdateTask}
               onCancel={() => setEditingTask(null)}

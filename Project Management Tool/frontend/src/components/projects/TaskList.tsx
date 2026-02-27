@@ -4,6 +4,7 @@ import type { ProjectTask, TaskStatus } from "./types";
 
 interface TaskListProps {
   tasks: ProjectTask[];
+  assigneeLabels?: Record<string, string>;
   onEdit: (task: ProjectTask) => void;
   onDelete: (task: ProjectTask) => void;
   onStatusChange: (taskId: string, nextStatus: TaskStatus) => void;
@@ -15,7 +16,13 @@ const statusClasses: Record<TaskStatus, string> = {
   Completed: "bg-emerald-100 text-emerald-700",
 };
 
-const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete, onStatusChange }) => {
+const TaskList: React.FC<TaskListProps> = ({
+  tasks,
+  assigneeLabels,
+  onEdit,
+  onDelete,
+  onStatusChange,
+}) => {
   if (tasks.length === 0) {
     return (
       <div className="bg-gray-50 border border-gray-100 rounded-xl p-6 text-sm text-gray-600">
@@ -33,7 +40,7 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onEdit, onDelete, onStatusCh
               <h3 className="font-semibold text-gray-900">{task.title}</h3>
               <p className="text-sm text-gray-600 mt-1">{task.description}</p>
               <p className="text-sm text-gray-700 mt-2">
-                <span className="font-medium">Assigned to:</span> {task.assignee}
+                <span className="font-medium">Assigned to:</span> {assigneeLabels?.[task.assignee] ?? task.assignee}
               </p>
             </div>
 

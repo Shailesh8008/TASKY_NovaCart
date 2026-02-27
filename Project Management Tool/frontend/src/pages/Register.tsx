@@ -1,13 +1,14 @@
 import React, { useState } from "react";
 import { Mail, Lock, User, ArrowRight } from "lucide-react";
 import AuthLayout from "../components/AuthLayout";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "react-hot-toast";
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const Register: React.FC = () => {
+  const naviate = useNavigate();
   const [wait, setWait] = useState(false);
   const { user, loading } = useAuth();
   const [form, setForm] = useState({
@@ -80,7 +81,8 @@ const Register: React.FC = () => {
         pass1: "",
         pass2: "",
       });
-      window.location.href = "/";
+      naviate("/login");
+      toast.success("Account created successfully. Please login.");
     } catch (error) {
       setWait(false);
       console.log("error: ", error);

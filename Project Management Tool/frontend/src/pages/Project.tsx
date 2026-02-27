@@ -15,10 +15,17 @@ import toast from "react-hot-toast";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL ?? "";
 
+interface UserSummary {
+  id: string;
+  name: string;
+  email: string;
+}
+
 const ProjectPage: React.FC = () => {
   const navigate = useNavigate();
   const { projects, createProject, updateProject, deleteProject } =
     useProjects();
+  const [users, setUsers] = useState<UserSummary[]>([]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All" | ProjectStatus>(
@@ -31,6 +38,57 @@ const ProjectPage: React.FC = () => {
   const [wait, setWait] = useState(false);
 
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
+
+  React.useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch(`${backendUrl}/api/get-users`, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        const payload = (await response.json().catch(() => null)) as
+          | UserSummary[]
+          | { users?: UserSummary[]; data?: UserSummary[] }
+          | null;
+
+        if (!response.ok) {
+          setUsers([]);
+          return;
+        }
+
+        const nextUsers = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.users)
+            ? payload.users
+            : Array.isArray(payload?.data)
+              ? payload.data
+              : [];
+
+        setUsers(
+          nextUsers.filter(
+            (user) =>
+              typeof user?.id === "string" &&
+              typeof user?.name === "string" &&
+              typeof user?.email === "string",
+          ),
+        );
+      } catch {
+        setUsers([]);
+      }
+    };
+
+    void fetchUsers();
+  }, []);
+
+  const teamMemberLabels = useMemo(
+    () =>
+      users.reduce<Record<string, string>>((accumulator, user) => {
+        accumulator[user.id] = user.name;
+        return accumulator;
+      }, {}),
+    [users],
+  );
 
   const filteredProjects = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -151,6 +209,7 @@ const ProjectPage: React.FC = () => {
               <ProjectCard
                 key={project.id}
                 project={project}
+                teamMemberLabels={teamMemberLabels}
                 onView={(projectId) => navigate(`/projects/${projectId}`)}
                 onEdit={openEditModal}
                 onDelete={setDeletingProject}

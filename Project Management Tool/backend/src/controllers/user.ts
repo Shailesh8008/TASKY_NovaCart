@@ -179,6 +179,120 @@ const createProject = async (req: Request, res: Response) => {
       .json({ ok: false, message: "Internal server error" });
   }
 };
+
+const getDashboardOverview = async (req: Request, res: Response) => {
+  if (!req.user?.id || typeof req.user.id !== "string") {
+    return res.status(401).json({ ok: false, message: "Unauthorized" });
+  }
+
+  const userId = req.user.id;
+  const now = new Date();
+
+  try {
+    const projects = await prisma.project.findMany({
+      where: {
+        OR: [{ ownerId: userId }, { members: { some: { id: userId } } }],
+      },
+      select: { id: true, name: true, createdAt: true },
+    });
+
+    const projectIds = projects.map((project) => project.id);
+
+    if (!projectIds.length) {
+      return res.json({
+        ok: true,
+        overview: {
+          totalProjects: 0,
+          totalTasks: 0,
+          overdueTasks: 0,
+          upcomingDeadlines: [],
+          recentActivities: [],
+        },
+      });
+    }
+
+    const [totalTasks, overdueTasks, upcomingDeadlines, recentTasks] =
+      await Promise.all([
+        prisma.task.count({
+          where: { projectId: { in: projectIds } },
+        }),
+        prisma.task.count({
+          where: {
+            projectId: { in: projectIds },
+            status: { not: "DONE" },
+            deadline: { lt: now },
+          },
+        }),
+        prisma.project.findMany({
+          where: {
+            id: { in: projectIds },
+            deadline: { gte: now },
+          },
+          orderBy: { deadline: "asc" },
+          take: 5,
+          select: {
+            id: true,
+            name: true,
+            deadline: true,
+          },
+        }),
+        prisma.task.findMany({
+          where: { projectId: { in: projectIds } },
+          orderBy: { createdAt: "desc" },
+          take: 10,
+          select: {
+            id: true,
+            title: true,
+            createdAt: true,
+            project: { select: { id: true, name: true } },
+          },
+        }),
+      ]);
+
+    const recentProjectActivities = projects
+      .map((project) => ({
+        id: project.id,
+        type: "PROJECT_CREATED",
+        title: `Project created: ${project.name}`,
+        project: { id: project.id, name: project.name },
+        date: project.createdAt,
+      }))
+      .sort((a, b) => b.date.getTime() - a.date.getTime())
+      .slice(0, 10);
+
+    const recentTaskActivities = recentTasks.map((task) => ({
+      id: task.id,
+      type: "TASK_CREATED",
+      title: `Task created: ${task.title}`,
+      project: task.project,
+      date: task.createdAt,
+    }));
+
+    const recentActivities = [
+      ...recentProjectActivities,
+      ...recentTaskActivities,
+    ]
+      .sort((a, b) => b.date.getTime() - a.date.getTime())
+      .slice(0, 10);
+
+    return res.json({
+      ok: true,
+      overview: {
+        totalProjects: projectIds.length,
+        totalTasks,
+        overdueTasks,
+        upcomingDeadlines,
+        recentActivities,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching dashboard overview:", error);
+    return res
+      .status(500)
+      .json({ ok: false, message: "Internal server error" });
+  }
+};
+
 const getUsers = async (req: Request, res: Response) => {
   try {
     const users = await prisma.user.findMany({
@@ -187,20 +301,56 @@ const getUsers = async (req: Request, res: Response) => {
     return res.json({ ok: true, users });
   } catch (error) {
     console.error("Error fetching users:", error);
-    return res
-      .status(500)
-      .json({
-        ok: false,
-        message: "Internal server error while fetching users",
-      });
+    return res.status(500).json({
+      ok: false,
+      message: "Internal server error while fetching users",
+    });
   }
 };
+
+const getMyProjects = async (req: Request, res: Response) => {
+  if (!req.user?.id || typeof req.user.id !== "string") {
+    return res.status(401).json({ ok: false, message: "Unauthorized" });
+  }
+
+  try {
+    const projects = await prisma.project.findMany({
+      where: { ownerId: req.user.id },
+      orderBy: { createdAt: "desc" },
+      include: {
+        members: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        _count: {
+          select: {
+            tasks: true,
+          },
+        },
+      },
+    });
+
+    return res.json({ ok: true, projects });
+  } catch (error) {
+    console.error("Error fetching my projects:", error);
+    return res.status(500).json({
+      ok: false,
+      message: "Internal server error while fetching projects",
+    });
+  }
+};
+
 const userController = {
   checkUser,
   register,
   login,
   logout,
   createProject,
+  getDashboardOverview,
   getUsers,
+  getMyProjects,
 };
 export default userController;

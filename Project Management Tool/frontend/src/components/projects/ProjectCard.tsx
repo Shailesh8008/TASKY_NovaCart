@@ -4,6 +4,7 @@ import type { Project } from "./types";
 
 interface ProjectCardProps {
   project: Project;
+  teamMemberLabels?: Record<string, string>;
   onView: (projectId: string) => Promise<void> | void;
   onEdit: (project: Project) => Promise<void> | void;
   onDelete: (project: Project) => Promise<void> | void;
@@ -15,11 +16,21 @@ const statusStyles: Record<"Not Started" | "In Progress" | "Completed", string> 
   Completed: "bg-emerald-100 text-emerald-700",
 };
 
-const ProjectCard: React.FC<ProjectCardProps> = ({ project, onView, onEdit, onDelete }) => {
+const ProjectCard: React.FC<ProjectCardProps> = ({
+  project,
+  teamMemberLabels,
+  onView,
+  onEdit,
+  onDelete,
+}) => {
   const progress = calculateProjectProgress(project.tasks);
   const status = calculateProjectStatus(project.tasks);
   const [wait, setWait] = useState<"view" | "edit" | "delete" | null>(null);
   const isWaiting = wait !== null;
+  const teamText =
+    project.teamMembers
+      .map((memberId) => teamMemberLabels?.[memberId] ?? memberId)
+      .join(", ") || "No members";
 
   const handleAction = async (action: "view" | "edit" | "delete") => {
     if (isWaiting) {
@@ -58,7 +69,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onView, onEdit, onDe
           <span className="font-medium">Deadline:</span> {formatDeadline(project.deadline)}
         </p>
         <p className="text-gray-700">
-          <span className="font-medium">Team:</span> {project.teamMembers.join(", ") || "No members"}
+          <span className="font-medium">Team:</span> {teamText}
         </p>
         <p className="text-gray-700">
           <span className="font-medium">Tasks:</span> {project.tasks.length}

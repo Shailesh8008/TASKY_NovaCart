@@ -1,6 +1,15 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Modal from "../Modal";
 import type { Project, ProjectInput } from "./types";
+import toast from "react-hot-toast";
+
+const backendUrl = import.meta.env.VITE_BACKEND_URL ?? "";
+
+interface UserOption {
+  id: string;
+  name: string;
+  email: string;
+}
 
 interface ProjectFormModalProps {
   isOpen: boolean;
@@ -43,12 +52,113 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
   onSubmit,
 }) => {
   const [form, setForm] = useState<ProjectInput>(() => buildInitialForm(mode, initialProject));
-  const [teamMemberText, setTeamMemberText] = useState(() =>
-    mode === "edit" && initialProject ? initialProject.teamMembers.join(", ") : "",
-  );
+  const [users, setUsers] = useState<UserOption[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersLoadError, setUsersLoadError] = useState<string | null>(null);
+  const [memberQuery, setMemberQuery] = useState("");
+  const [showMemberDropdown, setShowMemberDropdown] = useState(false);
+  const minDeadline = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const fetchUsers = async () => {
+      setUsersLoading(true);
+      setUsersLoadError(null);
+
+      try {
+        const response = await fetch(`${backendUrl}/api/get-users`, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        const payload = (await response.json().catch(() => null)) as
+          | UserOption[]
+          | { users?: UserOption[]; data?: UserOption[]; message?: string }
+          | null;
+
+        if (!response.ok) {
+          const message =
+            (payload && !Array.isArray(payload) ? payload.message : null) ||
+            `Failed to fetch users (HTTP ${response.status})`;
+          setUsersLoadError(message);
+          setUsers([]);
+          return;
+        }
+
+        const nextUsers = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.users)
+            ? payload.users
+            : Array.isArray(payload?.data)
+              ? payload.data
+              : [];
+
+        setUsers(
+          nextUsers.filter(
+            (user) =>
+              typeof user?.id === "string" &&
+              typeof user?.name === "string" &&
+              typeof user?.email === "string",
+          ),
+        );
+      } catch {
+        setUsersLoadError("Unable to load users");
+        setUsers([]);
+      } finally {
+        setUsersLoading(false);
+      }
+    };
+
+    void fetchUsers();
+  }, [isOpen]);
+
+  const filteredUsers = useMemo(() => {
+    const query = memberQuery.trim().toLowerCase();
+    const selected = new Set(form.teamMembers);
+
+    return users
+      .filter((user) => !selected.has(user.id))
+      .filter((user) => {
+        if (!query) {
+          return true;
+        }
+
+        return (
+          user.name.toLowerCase().includes(query) ||
+          user.email.toLowerCase().includes(query)
+        );
+      })
+      .slice(0, 8);
+  }, [users, form.teamMembers, memberQuery]);
 
   const updateField = <K extends keyof ProjectInput>(field: K, value: ProjectInput[K]) => {
     setForm((previous) => ({ ...previous, [field]: value }));
+  };
+
+  const addTeamMember = (userId: string) => {
+    if (form.teamMembers.includes(userId)) {
+      return;
+    }
+
+    updateField("teamMembers", [...form.teamMembers, userId]);
+    setMemberQuery("");
+    setShowMemberDropdown(false);
+  };
+
+  const removeTeamMember = (userId: string) => {
+    updateField(
+      "teamMembers",
+      form.teamMembers.filter((memberId) => memberId !== userId),
+    );
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -56,13 +166,12 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
     if (wait) {
       return;
     }
+    if (form.deadline < minDeadline) {
+      toast.error("Deadline cannot be in the past");
+      return;
+    }
 
-    const teamMembers = teamMemberText
-      .split(",")
-      .map((member) => member.trim())
-      .filter(Boolean);
-
-    await onSubmit({ ...form, teamMembers });
+    await onSubmit(form);
   };
 
   return (
@@ -104,6 +213,7 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
             type="date"
             required
             disabled={wait}
+            min={minDeadline}
             className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={form.deadline}
             onChange={(event) => updateField("deadline", event.target.value)}
@@ -111,17 +221,75 @@ const ProjectFormModal: React.FC<ProjectFormModalProps> = ({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Team Members (comma separated)
-          </label>
-          <input
-            type="text"
-            disabled={wait}
-            placeholder="Alex, Priya, Jamal"
-            className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={teamMemberText}
-            onChange={(event) => setTeamMemberText(event.target.value)}
-          />
+          <label className="block text-sm font-medium text-gray-700 mb-1">Team Members</label>
+
+          {form.teamMembers.length > 0 ? (
+            <div className="mb-2 flex flex-wrap gap-2">
+              {form.teamMembers.map((memberId) => {
+                const user = users.find((entry) => entry.id === memberId);
+                return (
+                  <span
+                    key={memberId}
+                    className="inline-flex items-center gap-2 rounded-full bg-blue-50 text-blue-700 px-3 py-1 text-sm"
+                  >
+                    {user ? `${user.name} (${user.email})` : memberId}
+                    <button
+                      type="button"
+                      disabled={wait}
+                      className="text-blue-700 hover:text-blue-900 cursor-pointer"
+                      onClick={() => removeTeamMember(memberId)}
+                    >
+                      x
+                    </button>
+                  </span>
+                );
+              })}
+            </div>
+          ) : null}
+
+          <div className="relative">
+            <input
+              type="text"
+              disabled={wait}
+              placeholder="Type name or email"
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={memberQuery}
+              onFocus={() => setShowMemberDropdown(true)}
+              onBlur={() => {
+                setTimeout(() => {
+                  setShowMemberDropdown(false);
+                }, 120);
+              }}
+              onChange={(event) => {
+                setMemberQuery(event.target.value);
+                setShowMemberDropdown(true);
+              }}
+            />
+
+            {showMemberDropdown ? (
+              <div className="absolute z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                {usersLoading ? (
+                  <div className="px-3 py-2 text-sm text-gray-500">Loading users...</div>
+                ) : usersLoadError ? (
+                  <div className="px-3 py-2 text-sm text-red-600">{usersLoadError}</div>
+                ) : filteredUsers.length === 0 ? (
+                  <div className="px-3 py-2 text-sm text-gray-500">No users found</div>
+                ) : (
+                  filteredUsers.map((user) => (
+                    <button
+                      key={user.id}
+                      type="button"
+                      className="w-full text-left px-3 py-2 hover:bg-blue-50 cursor-pointer"
+                      onClick={() => addTeamMember(user.id)}
+                    >
+                      <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                      <div className="text-xs text-gray-500">{user.email}</div>
+                    </button>
+                  ))
+                )}
+              </div>
+            ) : null}
+          </div>
         </div>
 
         <div className="flex justify-end gap-2 pt-2">
