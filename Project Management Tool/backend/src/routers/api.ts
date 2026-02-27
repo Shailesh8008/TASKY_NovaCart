@@ -5,6 +5,7 @@ import userController from "../controllers/user";
 
 apiRouter.get("/health", (req, res) => res.json({ response: "ok" }));
 apiRouter.get("/api/auth/user", auth, userController.checkUser);
+apiRouter.get("/api/get-users", userController.getUsers);
 
 apiRouter.post("/api/register", userController.register);
 apiRouter.post("/api/login", userController.login);

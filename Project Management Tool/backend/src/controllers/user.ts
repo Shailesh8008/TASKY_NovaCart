@@ -148,7 +148,7 @@ const createProject = async (req: Request, res: Response) => {
     name?: string;
     description?: string;
     deadline?: string;
-    teamMembers?: string[];
+    teamMembers: string[];
   };
 
   if (!name || !description || !deadline) {
@@ -164,7 +164,9 @@ const createProject = async (req: Request, res: Response) => {
         description,
         deadline: new Date(deadline),
         ownerId: req.user!.id,
-        teamMembers: teamMembers || [],
+        members: {
+          connect: teamMembers.map((id) => ({ id })),
+        },
       },
     });
     return res
@@ -177,12 +179,28 @@ const createProject = async (req: Request, res: Response) => {
       .json({ ok: false, message: "Internal server error" });
   }
 };
-
+const getUsers = async (req: Request, res: Response) => {
+  try {
+    const users = await prisma.user.findMany({
+      select: { id: true, name: true, email: true },
+    });
+    return res.json({ ok: true, users });
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    return res
+      .status(500)
+      .json({
+        ok: false,
+        message: "Internal server error while fetching users",
+      });
+  }
+};
 const userController = {
   checkUser,
   register,
   login,
   logout,
   createProject,
+  getUsers,
 };
 export default userController;
