@@ -401,14 +401,14 @@ const editTask = async (req: Request, res: Response) => {
       typeof value === "string" && value.trim().length > 0,
   );
 
-  if (!taskId || !projectId || !title) {
+  if (!taskId || !projectId) {
     return res.status(400).json({
       ok: false,
-      message: "taskId, projectId, and title are required",
+      message: "taskId and projectId are required",
     });
   }
 
-  const parsedDeadline = deadline ? new Date(deadline) : null;
+  const parsedDeadline = deadline ? new Date(deadline) : undefined;
   if (parsedDeadline && Number.isNaN(parsedDeadline.getTime())) {
     return res.status(400).json({
       ok: false,
@@ -430,7 +430,7 @@ const editTask = async (req: Request, res: Response) => {
         id: projectId,
         OR: [{ ownerId: req.user.id }, { members: { some: { id: req.user.id } } }],
       },
-      select: { id: true },
+      select: { id: true, ownerId: true },
     });
 
     if (!project) {
@@ -445,7 +445,7 @@ const editTask = async (req: Request, res: Response) => {
         id: taskId,
         projectId,
       },
-      select: { id: true },
+      select: { id: true, assignedToId: true },
     });
 
     if (!existingTask) {
@@ -476,15 +476,57 @@ const editTask = async (req: Request, res: Response) => {
       }
     }
 
+    const isOwner = project.ownerId === req.user.id;
+    const isTaskAssignee = existingTask.assignedToId === req.user.id;
+    const requestedStatusOnlyUpdate =
+      status !== undefined &&
+      title === undefined &&
+      description === undefined &&
+      deadline === undefined &&
+      resolvedAssignedToId === undefined;
+
+    if (requestedStatusOnlyUpdate && !isOwner && !isTaskAssignee) {
+      return res.status(403).json({
+        ok: false,
+        message: "You can only update status for tasks assigned to you",
+      });
+    }
+
+    if (!requestedStatusOnlyUpdate && !isOwner) {
+      return res.status(403).json({
+        ok: false,
+        message: "Only project owner can edit task details",
+      });
+    }
+
+    const updateData: Prisma.TaskUncheckedUpdateInput = {};
+
+    if (typeof title === "string" && title.trim().length > 0) {
+      updateData.title = title;
+    }
+    if (description !== undefined) {
+      updateData.description = description;
+    }
+    if (deadline !== undefined) {
+      updateData.deadline = parsedDeadline ?? null;
+    }
+    if (resolvedAssignedToId !== undefined) {
+      updateData.assignedToId = resolvedAssignedToId;
+    }
+    if (normalizedStatus) {
+      updateData.status = normalizedStatus;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        ok: false,
+        message: "No valid fields provided to update",
+      });
+    }
+
     const task = await prisma.task.update({
       where: { id: taskId },
-      data: {
-        title,
-        description,
-        deadline: parsedDeadline,
-        assignedToId: resolvedAssignedToId,
-        status: normalizedStatus,
-      },
+      data: updateData,
       include: {
         project: { select: { id: true, name: true } },
         assignedTo: { select: { id: true, name: true, email: true } },
@@ -513,39 +555,54 @@ const getDashboardOverview = async (req: Request, res: Response) => {
   const now = new Date();
 
   try {
-    const ownedProjects = await prisma.project.findMany({
-      where: { ownerId: userId },
-      select: { id: true, name: true, createdAt: true },
+    const accessibleProjects = await prisma.project.findMany({
+      where: {
+        OR: [{ ownerId: userId }, { members: { some: { id: userId } } }],
+      },
+      select: {
+        id: true,
+        name: true,
+        createdAt: true,
+        updatedAt: true,
+        ownerId: true,
+      },
     });
 
-    const [memberProjects, totalTasks, overdueTasks, upcomingDeadlines, recentOwnedTasks, recentAssignedTasks] =
+    const projectIds = accessibleProjects.map((project) => project.id);
+
+    if (!projectIds.length) {
+      return res.json({
+        ok: true,
+        overview: {
+          totalProjects: 0,
+          totalTasks: 0,
+          overdueTasks: 0,
+          upcomingDeadlines: [],
+          recentActivities: [],
+        },
+      });
+    }
+
+    const [ownedProjectTasks, assignedTasks, overdueTasks, upcomingDeadlines, recentOwnedProjectTasks, recentAssignedTasks] =
       await Promise.all([
-        prisma.project.findMany({
-          where: {
-            members: { some: { id: userId } },
-            NOT: { ownerId: userId },
-          },
-          orderBy: { updatedAt: "desc" },
-          take: 10,
-          select: {
-            id: true,
-            name: true,
-            updatedAt: true,
-          },
-        }),
-        prisma.task.count({
+        prisma.task.findMany({
           where: { project: { ownerId: userId } },
+          select: { id: true },
+        }),
+        prisma.task.findMany({
+          where: { assignedToId: userId },
+          select: { id: true },
         }),
         prisma.task.count({
           where: {
-            project: { ownerId: userId },
+            projectId: { in: projectIds },
             status: { not: "DONE" },
             deadline: { lt: now },
           },
         }),
         prisma.project.findMany({
           where: {
-            ownerId: userId,
+            id: { in: projectIds },
             deadline: { gte: now },
           },
           orderBy: { deadline: "asc" },
@@ -564,69 +621,135 @@ const getDashboardOverview = async (req: Request, res: Response) => {
             id: true,
             title: true,
             createdAt: true,
+            updatedAt: true,
             project: { select: { id: true, name: true } },
           },
         }),
         prisma.task.findMany({
-          where: { assignedToId: userId },
+          where: {
+            assignedToId: userId,
+            projectId: { in: projectIds },
+          },
           orderBy: { createdAt: "desc" },
           take: 10,
           select: {
             id: true,
             title: true,
             createdAt: true,
+            updatedAt: true,
             project: { select: { id: true, name: true } },
           },
         }),
       ]);
 
-    const recentProjectActivities = ownedProjects
+    const totalTasks = new Set([
+      ...ownedProjectTasks.map((task) => task.id),
+      ...assignedTasks.map((task) => task.id),
+    ]).size;
+
+    const ownedProjectActivities = accessibleProjects
+      .filter((project) => project.ownerId === userId)
+      .flatMap((project) => {
+        const activities = [
+          {
+            id: `project-created-${project.id}`,
+            type: "PROJECT_CREATED",
+            title: `Project created: ${project.name}`,
+            project: { id: project.id, name: project.name },
+            date: project.createdAt,
+          },
+        ];
+
+        if (project.updatedAt.getTime() > project.createdAt.getTime()) {
+          activities.push({
+            id: `project-updated-${project.id}`,
+            type: "PROJECT_UPDATED",
+            title: `Project updated: ${project.name}`,
+            project: { id: project.id, name: project.name },
+            date: project.updatedAt,
+          });
+        }
+
+        return activities;
+      });
+
+    const assignedProjectActivities = accessibleProjects
+      .filter((project) => project.ownerId !== userId)
       .map((project) => ({
-        id: project.id,
-        type: "PROJECT_CREATED",
-        title: `Project created: ${project.name}`,
+        id: `project-assigned-${project.id}`,
+        type: "PROJECT_ASSIGNED",
+        title: `Assigned to project: ${project.name}`,
         project: { id: project.id, name: project.name },
-        date: project.createdAt,
-      }))
-      .sort((a, b) => b.date.getTime() - a.date.getTime());
+        date: project.updatedAt,
+      }));
 
-    const recentMemberProjectActivities = memberProjects.map((project) => ({
-      id: `member-${project.id}`,
-      type: "PROJECT_ADDED",
-      title: `Added to project: ${project.name}`,
-      project: { id: project.id, name: project.name },
-      date: project.updatedAt,
-    }));
+    const ownedProjectTaskActivities = recentOwnedProjectTasks.flatMap((task) => {
+      const activities = [
+        {
+          id: `owned-task-created-${task.id}`,
+          type: "TASK_CREATED",
+          title: `Task created in your project: ${task.title}`,
+          project: task.project,
+          date: task.createdAt,
+        },
+      ];
 
-    const ownedTaskActivities = recentOwnedTasks.map((task) => ({
-      id: task.id,
-      type: "TASK_CREATED",
-      title: `Task created: ${task.title}`,
-      project: task.project,
-      date: task.createdAt,
-    }));
+      if (task.updatedAt.getTime() > task.createdAt.getTime()) {
+        activities.push({
+          id: `owned-task-updated-${task.id}`,
+          type: "TASK_UPDATED",
+          title: `Task updated in your project: ${task.title}`,
+          project: task.project,
+          date: task.updatedAt,
+        });
+      }
 
-    const assignedTaskActivities = recentAssignedTasks.map((task) => ({
-      id: `assigned-${task.id}`,
-      type: "TASK_ASSIGNED",
-      title: `Task assigned: ${task.title}`,
-      project: task.project,
-      date: task.createdAt,
-    }));
+      return activities;
+    });
 
-    const recentActivities = [
-      ...recentProjectActivities,
-      ...recentMemberProjectActivities,
-      ...ownedTaskActivities,
-      ...assignedTaskActivities,
-    ]
+    const assignedTaskActivities = recentAssignedTasks.flatMap((task) => {
+      const activities = [
+        {
+          id: `task-assigned-${task.id}`,
+          type: "TASK_ASSIGNED",
+          title: `Task assigned: ${task.title}`,
+          project: task.project,
+          date: task.createdAt,
+        },
+      ];
+
+      if (task.updatedAt.getTime() > task.createdAt.getTime()) {
+        activities.push({
+          id: `task-updated-${task.id}`,
+          type: "TASK_UPDATED",
+          title: `Task updated: ${task.title}`,
+          project: task.project,
+          date: task.updatedAt,
+        });
+      }
+
+      return activities;
+    });
+
+    const dedupedRecentActivities = Array.from(
+      new Map(
+        [
+          ...ownedProjectActivities,
+          ...assignedProjectActivities,
+          ...ownedProjectTaskActivities,
+          ...assignedTaskActivities,
+        ].map((activity) => [activity.id, activity]),
+      ).values(),
+    );
+
+    const recentActivities = dedupedRecentActivities
       .sort((a, b) => b.date.getTime() - a.date.getTime())
       .slice(0, 10);
 
     return res.json({
       ok: true,
       overview: {
-        totalProjects: ownedProjects.length,
+        totalProjects: projectIds.length,
         totalTasks,
         overdueTasks,
         upcomingDeadlines,

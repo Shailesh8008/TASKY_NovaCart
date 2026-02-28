@@ -5,6 +5,8 @@ import type { Project } from "./types";
 interface ProjectCardProps {
   project: Project;
   teamMemberLabels?: Record<string, string>;
+  canManageProject?: boolean;
+  ownershipLabel?: "Owned";
   onView: (projectId: string) => Promise<void> | void;
   onEdit: (project: Project) => Promise<void> | void;
   onDelete: (project: Project) => Promise<void> | void;
@@ -19,6 +21,8 @@ const statusStyles: Record<"Not Started" | "In Progress" | "Completed", string> 
 const ProjectCard: React.FC<ProjectCardProps> = ({
   project,
   teamMemberLabels,
+  canManageProject = true,
+  ownershipLabel,
   onView,
   onEdit,
   onDelete,
@@ -60,7 +64,16 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     <article className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <h3 className="text-lg font-semibold text-gray-900">{project.name}</h3>
-        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusStyles[status]}`}>{status}</span>
+        <div className="flex items-center gap-2">
+          {ownershipLabel ? (
+            <span
+              className="inline-flex text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700"
+            >
+              {ownershipLabel}
+            </span>
+          ) : null}
+          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${statusStyles[status]}`}>{status}</span>
+        </div>
       </div>
 
       <p className="text-sm text-gray-600 mt-3 line-clamp-2">{project.description}</p>
@@ -124,78 +137,82 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             "View Details"
           )}
         </button>
-        <button
-          type="button"
-          disabled={isWaiting}
-          className={`px-3 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center ${
-            isWaiting ? "opacity-75 cursor-not-allowed" : "cursor-pointer"
-          }`}
-          onClick={() => handleAction("edit")}
-        >
-          {wait === "edit" ? (
-            <>
-              <svg
-                className="animate-spin -ml-1 mr-1 h-5 w-5 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-              please wait...
-            </>
-          ) : (
-            "Edit"
-          )}
-        </button>
-        <button
-          type="button"
-          disabled={isWaiting}
-          className={`px-3 py-2 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 flex items-center justify-center ${
-            isWaiting ? "opacity-75 cursor-not-allowed" : "cursor-pointer"
-          }`}
-          onClick={() => handleAction("delete")}
-        >
-          {wait === "delete" ? (
-            <>
-              <svg
-                className="animate-spin -ml-1 mr-1 h-5 w-5 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-              please wait...
-            </>
-          ) : (
-            "Delete"
-          )}
-        </button>
+        {canManageProject ? (
+          <>
+            <button
+              type="button"
+              disabled={isWaiting}
+              className={`px-3 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center ${
+                isWaiting ? "opacity-75 cursor-not-allowed" : "cursor-pointer"
+              }`}
+              onClick={() => handleAction("edit")}
+            >
+              {wait === "edit" ? (
+                <>
+                  <svg
+                    className="animate-spin -ml-1 mr-1 h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  please wait...
+                </>
+              ) : (
+                "Edit"
+              )}
+            </button>
+            <button
+              type="button"
+              disabled={isWaiting}
+              className={`px-3 py-2 text-sm font-medium rounded-lg bg-red-600 text-white hover:bg-red-700 flex items-center justify-center ${
+                isWaiting ? "opacity-75 cursor-not-allowed" : "cursor-pointer"
+              }`}
+              onClick={() => handleAction("delete")}
+            >
+              {wait === "delete" ? (
+                <>
+                  <svg
+                    className="animate-spin -ml-1 mr-1 h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  please wait...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </button>
+          </>
+        ) : null}
       </div>
     </article>
   );

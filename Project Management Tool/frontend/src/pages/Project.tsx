@@ -12,6 +12,7 @@ import type {
 } from "../components/projects/types";
 import { useProjects } from "../hooks/useProjects";
 import toast from "react-hot-toast";
+import { useAuth } from "../context/AuthContext";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL ?? "";
 
@@ -23,6 +24,7 @@ interface UserSummary {
 
 const ProjectPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { projects, createProject, updateProject, deleteProject } =
     useProjects();
   const [users, setUsers] = useState<UserSummary[]>([]);
@@ -233,14 +235,25 @@ const ProjectPage: React.FC = () => {
             </div>
           ) : (
             filteredProjects.map((project) => (
+              (() => {
+                const isOwner =
+                  typeof user?.id === "string"
+                    ? !project.ownerId || project.ownerId === user.id
+                    : false;
+
+                return (
               <ProjectCard
                 key={project.id}
                 project={project}
                 teamMemberLabels={teamMemberLabels}
+                canManageProject={isOwner}
+                ownershipLabel={isOwner ? "Owned" : undefined}
                 onView={(projectId) => navigate(`/projects/${projectId}`)}
                 onEdit={openEditModal}
                 onDelete={setDeletingProject}
               />
+                );
+              })()
             ))
           )}
         </section>

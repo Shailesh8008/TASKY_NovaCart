@@ -187,6 +187,40 @@ const ProjectDetails: React.FC = () => {
     }
   };
 
+  const handleUpdateTaskStatus = async (
+    taskId: string,
+    nextStatus: ProjectTask["status"],
+  ) => {
+    try {
+      const response = await fetch(`${backendUrl}/api/edit-task`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          taskId,
+          projectId: project.id,
+          status: nextStatus,
+        }),
+      });
+
+      const data = (await response.json().catch(() => null)) as {
+        ok?: boolean;
+        message?: string;
+      } | null;
+
+      if (!response.ok || data?.ok === false) {
+        toast.error(data?.message || `Failed to update task status (HTTP ${response.status})`);
+        return;
+      }
+
+      updateTaskStatus(project.id, taskId, nextStatus);
+    } catch {
+      toast.error("Unable to connect to server");
+    }
+  };
+
   return (
     <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -264,7 +298,7 @@ const ProjectDetails: React.FC = () => {
             canChangeTaskStatus={canChangeTaskStatus}
             onEdit={setEditingTask}
             onDelete={setDeletingTask}
-            onStatusChange={(taskId, nextStatus) => updateTaskStatus(project.id, taskId, nextStatus)}
+            onStatusChange={handleUpdateTaskStatus}
           />
         </section>
       </div>
