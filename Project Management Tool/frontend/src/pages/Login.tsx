@@ -102,7 +102,7 @@ const Login: React.FC = () => {
               type="text"
               value={form.email}
               onChange={handleChange}
-              placeholder="abc123@gmail.com"
+              placeholder="john.doe@gmail.com"
               className={`w-full pl-10 pr-4 py-3 rounded-xl border ${
                 error.email
                   ? "border-red-300 text-red-900 focus:ring-red-500 focus:border-red-500"

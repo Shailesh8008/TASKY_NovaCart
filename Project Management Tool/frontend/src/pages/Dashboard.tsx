@@ -321,26 +321,30 @@ const Dashboard: React.FC = () => {
           </div>
         </section>
 
-        <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Recent Activity
-          </h2>
-          <ul className="space-y-4">
-            {recentActivity.length === 0 && !loading ? (
-              <li className="text-sm text-gray-500">No recent activity.</li>
-            ) : null}
-            {recentActivity.map((activity) => (
-              <li
-                key={`${activity.message}-${activity.time}`}
-                className="flex items-start justify-between gap-3"
-              >
-                <p className="text-gray-700">{activity.message}</p>
-                <span className="text-sm text-gray-500 whitespace-nowrap">
-                  {activity.time}
-                </span>
-              </li>
-            ))}
-          </ul>
+        <section className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="h-72 overflow-y-auto">
+            <div className="sticky top-0 z-10 bg-white px-6 py-4 border-b border-gray-100">
+              <h2 className="text-xl font-semibold text-gray-900">
+                Recent Activity
+              </h2>
+            </div>
+            <ul className="space-y-4 px-6 py-4">
+              {recentActivity.length === 0 && !loading ? (
+                <li className="text-sm text-gray-500">No recent activity.</li>
+              ) : null}
+              {recentActivity.map((activity) => (
+                <li
+                  key={`${activity.message}-${activity.time}`}
+                  className="flex items-start justify-between gap-3"
+                >
+                  <p className="text-gray-700">{activity.message}</p>
+                  <span className="text-sm text-gray-500 whitespace-nowrap">
+                    {activity.time}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </section>
       </div>
     </main>

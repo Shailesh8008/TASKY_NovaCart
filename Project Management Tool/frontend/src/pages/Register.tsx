@@ -121,7 +121,7 @@ const Register: React.FC = () => {
               value={form.name}
               onChange={handleChange}
               type="text"
-              placeholder="Jim Carry"
+              placeholder="John Doe"
               className={`w-full pl-10 pr-4 py-3 rounded-xl border ${error.name ? "border-red-300 text-red-900 focus:ring-red-500 focus:border-red-500" : "border-gray-200 focus:ring-blue-500"} focus:border-transparent focus:ring-2 outline-none transition-all`}
             />
           </div>
@@ -146,7 +146,7 @@ const Register: React.FC = () => {
               type="text"
               value={form.email}
               onChange={handleChange}
-              placeholder="jim@gmail.com"
+              placeholder="john.doe@gmail.com"
               className={`w-full pl-10 pr-4 py-3 rounded-xl border ${
                 error.email
                   ? "border-red-300 text-red-900 focus:ring-red-500 focus:border-red-500"
