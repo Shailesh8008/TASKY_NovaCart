@@ -546,6 +546,66 @@ const editTask = async (req: Request, res: Response) => {
   }
 };
 
+const deleteTask = async (req: Request, res: Response) => {
+  if (!req.user?.id || typeof req.user.id !== "string") {
+    return res.status(401).json({ ok: false, message: "Unauthorized" });
+  }
+
+  const { taskId } = req.body as {
+    taskId?: string;
+  };
+
+  if (!taskId) {
+    return res.status(400).json({
+      ok: false,
+      message: "taskId is required",
+    });
+  }
+
+  try {
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: {
+        id: true,
+        project: {
+          select: {
+            ownerId: true,
+          },
+        },
+      },
+    });
+
+    if (!task) {
+      return res.status(404).json({
+        ok: false,
+        message: "Task not found",
+      });
+    }
+
+    if (task.project.ownerId !== req.user.id) {
+      return res.status(403).json({
+        ok: false,
+        message: "Only project owner can delete tasks",
+      });
+    }
+
+    await prisma.task.delete({
+      where: { id: taskId },
+    });
+
+    return res.json({
+      ok: true,
+      message: "Task deleted successfully",
+      taskId,
+    });
+  } catch (error) {
+    console.error("Error deleting task:", error);
+    return res
+      .status(500)
+      .json({ ok: false, message: "Internal server error" });
+  }
+};
+
 const getDashboardOverview = async (req: Request, res: Response) => {
   if (!req.user?.id || typeof req.user.id !== "string") {
     return res.status(401).json({ ok: false, message: "Unauthorized" });
@@ -835,6 +895,7 @@ const userController = {
   editProject,
   addTask,
   editTask,
+  deleteTask,
   getDashboardOverview,
   getUsers,
   getMyProjects,

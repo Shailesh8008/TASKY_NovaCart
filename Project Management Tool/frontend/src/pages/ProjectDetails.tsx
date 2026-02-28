@@ -221,6 +221,42 @@ const ProjectDetails: React.FC = () => {
     }
   };
 
+  const handleDeleteTask = async () => {
+    if (!deletingTask) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${backendUrl}/api/delete-task`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          taskId: deletingTask.id,
+          projectId: project.id,
+        }),
+      });
+
+      const data = (await response.json().catch(() => null)) as {
+        ok?: boolean;
+        message?: string;
+      } | null;
+
+      if (!response.ok || data?.ok === false) {
+        toast.error(data?.message || `Failed to delete task (HTTP ${response.status})`);
+        return;
+      }
+
+      deleteTask(project.id, deletingTask.id);
+      setDeletingTask(null);
+      toast.success("Task deleted successfully");
+    } catch {
+      toast.error("Unable to connect to server");
+    }
+  };
+
   return (
     <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -327,14 +363,7 @@ const ProjectDetails: React.FC = () => {
         description={`Are you sure you want to delete "${deletingTask?.title ?? ""}"?`}
         confirmLabel="Delete"
         onClose={() => setDeletingTask(null)}
-        onConfirm={() => {
-          if (!deletingTask) {
-            return;
-          }
-
-          deleteTask(project.id, deletingTask.id);
-          setDeletingTask(null);
-        }}
+        onConfirm={handleDeleteTask}
       />
     </main>
   );

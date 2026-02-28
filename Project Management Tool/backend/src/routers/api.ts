@@ -16,5 +16,6 @@ apiRouter.post("/api/create-project", auth, userController.createProject);
 apiRouter.post("/api/edit-project", auth, userController.editProject);
 apiRouter.post("/api/add-task", auth, userController.addTask);
 apiRouter.post("/api/edit-task", auth, userController.editTask);
+apiRouter.post("/api/delete-task", auth, userController.deleteTask);
 
 export default apiRouter;
