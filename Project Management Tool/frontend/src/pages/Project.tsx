@@ -166,8 +166,35 @@ const ProjectPage: React.FC = () => {
 
     setWait(true);
     try {
+      const response = await fetch(`${backendUrl}/api/edit-project`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          projectId: editingProject.id,
+          ...values,
+        }),
+      });
+
+      const data = (await response.json().catch(() => null)) as {
+        ok?: boolean;
+        message?: string;
+      } | null;
+
+      if (!response.ok || data?.ok === false) {
+        const message =
+          data?.message || `Failed to edit project (HTTP ${response.status})`;
+        toast.error(message);
+        return;
+      }
+
       updateProject(editingProject.id, values);
       setIsFormOpen(false);
+      toast.success("Project updated successfully");
+    } catch {
+      toast.error("Unable to connect to server");
     } finally {
       setWait(false);
     }

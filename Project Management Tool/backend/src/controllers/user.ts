@@ -180,18 +180,106 @@ const createProject = async (req: Request, res: Response) => {
   }
 };
 
+const editProject = async (req: Request, res: Response) => {
+  if (!req.user?.id || typeof req.user.id !== "string") {
+    return res.status(401).json({ ok: false, message: "Unauthorized" });
+  }
+
+  const { projectId, name, description, deadline, teamMembers } = req.body as {
+    projectId?: string;
+    name?: string;
+    description?: string;
+    deadline?: string;
+    teamMembers?: string[];
+  };
+
+  if (!projectId || !name || !description || !deadline) {
+    return res.status(400).json({
+      ok: false,
+      message: "projectId, name, description, and deadline are required",
+    });
+  }
+
+  const parsedDeadline = new Date(deadline);
+  if (Number.isNaN(parsedDeadline.getTime())) {
+    return res.status(400).json({
+      ok: false,
+      message: "Invalid deadline date",
+    });
+  }
+
+  try {
+    const project = await prisma.project.findFirst({
+      where: {
+        id: projectId,
+        ownerId: req.user.id,
+      },
+      select: { id: true },
+    });
+
+    if (!project) {
+      return res.status(404).json({
+        ok: false,
+        message: "Project not found or you don't have permission",
+      });
+    }
+
+    const updatedProject = await prisma.project.update({
+      where: { id: projectId },
+      data: {
+        name,
+        description,
+        deadline: parsedDeadline,
+        members: {
+          set: Array.isArray(teamMembers)
+            ? teamMembers.map((id) => ({ id }))
+            : [],
+        },
+      },
+      include: {
+        members: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    return res.json({
+      ok: true,
+      message: "Project updated successfully",
+      project: updatedProject,
+    });
+  } catch (error) {
+    console.error("Error editing project:", error);
+    return res.status(500).json({
+      ok: false,
+      message: "Internal server error",
+    });
+  }
+};
+
 const addTask = async (req: Request, res: Response) => {
   if (!req.user?.id || typeof req.user.id !== "string") {
     return res.status(401).json({ ok: false, message: "Unauthorized" });
   }
 
-  const { title, description, deadline, projectId, assignedToId } = req.body as {
+  const { title, description, deadline, projectId, assignedToId, assignedTo, assignee } = req.body as {
     title?: string;
     description?: string;
     deadline?: string;
     projectId?: string;
     assignedToId?: string;
+    assignedTo?: string;
+    assignee?: string;
   };
+
+  const resolvedAssignedToId = [assignedToId, assignedTo, assignee].find(
+    (value): value is string =>
+      typeof value === "string" && value.trim().length > 0,
+  );
 
   if (!title || !projectId) {
     return res.status(400).json({
@@ -216,10 +304,10 @@ const addTask = async (req: Request, res: Response) => {
       });
     }
 
-    if (assignedToId) {
+    if (resolvedAssignedToId) {
       const assignee = await prisma.user.findFirst({
         where: {
-          id: assignedToId,
+          id: resolvedAssignedToId,
           OR: [
             { id: req.user.id },
             { ownedProjects: { some: { id: projectId } } },
@@ -251,7 +339,7 @@ const addTask = async (req: Request, res: Response) => {
         description,
         deadline: parsedDeadline,
         projectId,
-        assignedToId,
+        assignedToId: resolvedAssignedToId,
       },
       include: {
         project: { select: { id: true, name: true } },
@@ -415,9 +503,16 @@ const getMyProjects = async (req: Request, res: Response) => {
             email: true,
           },
         },
-        _count: {
-          select: {
-            tasks: true,
+        tasks: {
+          orderBy: { createdAt: "desc" },
+          include: {
+            assignedTo: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
           },
         },
       },
@@ -439,6 +534,7 @@ const userController = {
   login,
   logout,
   createProject,
+  editProject,
   addTask,
   getDashboardOverview,
   getUsers,

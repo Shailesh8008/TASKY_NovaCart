@@ -15,6 +15,16 @@ type RawProject = Partial<Project> & {
   _count?: { tasks?: unknown };
 };
 
+type RawTask = Partial<ProjectTask> & {
+  _id?: string;
+  id?: string;
+  name?: string;
+  dueDate?: string;
+  assignedTo?: unknown;
+  assignedToId?: unknown;
+  assigneeId?: unknown;
+};
+
 const getEntityId = (value: unknown): string | null => {
   if (typeof value === "string") {
     return value;
@@ -24,15 +34,84 @@ const getEntityId = (value: unknown): string | null => {
     return null;
   }
 
-  const candidate = value as { id?: unknown; _id?: unknown };
+  const candidate = value as { id?: unknown; _id?: unknown; userId?: unknown; assignedToId?: unknown };
   if (typeof candidate.id === "string") {
     return candidate.id;
   }
   if (typeof candidate._id === "string") {
     return candidate._id;
   }
+  if (typeof candidate.userId === "string") {
+    return candidate.userId;
+  }
+  if (typeof candidate.assignedToId === "string") {
+    return candidate.assignedToId;
+  }
 
   return null;
+};
+
+const normalizeTaskStatus = (value: unknown): ProjectTask["status"] => {
+  if (value === "Todo" || value === "In Progress" || value === "Completed") {
+    return value;
+  }
+
+  if (typeof value !== "string") {
+    return "Todo";
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "todo" || normalized === "to_do") {
+    return "Todo";
+  }
+  if (normalized === "in progress" || normalized === "in_progress") {
+    return "In Progress";
+  }
+  if (normalized === "completed" || normalized === "done") {
+    return "Completed";
+  }
+
+  return "Todo";
+};
+
+const normalizeTask = (task: unknown): ProjectTask | null => {
+  const nextTask = task as RawTask;
+  const taskId =
+    typeof nextTask.id === "string" ? nextTask.id : typeof nextTask._id === "string" ? nextTask._id : "";
+  const title = typeof nextTask.title === "string"
+    ? nextTask.title
+    : typeof nextTask.name === "string"
+      ? nextTask.name
+      : "";
+  const taskDescription = typeof nextTask.description === "string" ? nextTask.description : "";
+  const assignee = typeof nextTask.assignee === "string"
+    ? nextTask.assignee
+    : getEntityId(nextTask.assignee) ??
+      (typeof nextTask.assignedToId === "string"
+        ? nextTask.assignedToId
+        : typeof nextTask.assigneeId === "string"
+          ? nextTask.assigneeId
+          : typeof nextTask.assignedTo === "string"
+            ? nextTask.assignedTo
+            : getEntityId(nextTask.assignedTo) ?? "");
+  const taskDeadline = typeof nextTask.deadline === "string"
+    ? nextTask.deadline
+    : typeof nextTask.dueDate === "string"
+      ? nextTask.dueDate
+      : "";
+
+  if (!taskId || !title || !taskDescription) {
+    return null;
+  }
+
+  return {
+    id: taskId,
+    title,
+    description: taskDescription,
+    assignee,
+    deadline: taskDeadline,
+    status: normalizeTaskStatus(nextTask.status),
+  };
 };
 
 const normalizeProject = (input: RawProject): Project | null => {
@@ -56,35 +135,7 @@ const normalizeProject = (input: RawProject): Project | null => {
   const teamMembers = Array.from(new Set([...membersFromMembersField, ...membersFromTeamMembersField]));
 
   const tasks = Array.isArray(input.tasks)
-    ? input.tasks
-        .map((task): ProjectTask | null => {
-          const nextTask = task as Partial<ProjectTask> & { _id?: string };
-          const taskId =
-            typeof nextTask.id === "string" ? nextTask.id : typeof nextTask._id === "string" ? nextTask._id : "";
-          const title = typeof nextTask.title === "string" ? nextTask.title : "";
-          const taskDescription = typeof nextTask.description === "string" ? nextTask.description : "";
-          const assignee = typeof nextTask.assignee === "string" ? nextTask.assignee : "";
-          const taskDeadline = typeof nextTask.deadline === "string" ? nextTask.deadline : "";
-          const status = nextTask.status;
-
-          if (!taskId || !title || !taskDescription || !assignee) {
-            return null;
-          }
-
-          if (status !== "Todo" && status !== "In Progress" && status !== "Completed") {
-            return null;
-          }
-
-          return {
-            id: taskId,
-            title,
-            description: taskDescription,
-            assignee,
-            deadline: taskDeadline,
-            status,
-          };
-        })
-        .filter((task): task is ProjectTask => Boolean(task))
+    ? input.tasks.map(normalizeTask).filter((task): task is ProjectTask => Boolean(task))
     : [];
   const countedTasks = typeof input._count?.tasks === "number" ? input._count.tasks : null;
 

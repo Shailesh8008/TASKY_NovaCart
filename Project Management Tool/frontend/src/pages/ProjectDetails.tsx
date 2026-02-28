@@ -97,6 +97,15 @@ const ProjectDetails: React.FC = () => {
   const completedTasks = project.tasks.filter((task) => task.status === "Completed").length;
 
   const handleAddTask = async (values: TaskInput) => {
+    const payload = {
+      projectId: project.id,
+      title: values.title,
+      description: values.description,
+      deadline: values.deadline,
+      assignedToId: values.assignee || undefined,
+      assignedTo: values.assignee || undefined,
+    };
+
     try {
       const response = await fetch(`${backendUrl}/api/add-task`, {
         method: "POST",
@@ -104,15 +113,17 @@ const ProjectDetails: React.FC = () => {
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify({
-          projectId: project.id,
-          ...values,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = (await response.json().catch(() => null)) as {
         ok?: boolean;
         message?: string;
+        task?: {
+          id?: string;
+          assignedToId?: string | null;
+          assignedTo?: unknown;
+        };
       } | null;
 
       if (!response.ok || data?.ok === false) {

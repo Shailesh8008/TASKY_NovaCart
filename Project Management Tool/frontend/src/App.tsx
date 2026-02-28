@@ -12,6 +12,7 @@ import Features from "./pages/Features";
 import { useAuth } from "./context/AuthContext";
 import { Toaster } from "react-hot-toast";
 import Skeleton from "react-loading-skeleton";
+import MyTasks from "./pages/MyTasks";
 import "react-loading-skeleton/dist/skeleton.css";
 
 const ProtectedRoute = () => {
@@ -116,6 +117,7 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/projects" element={<Project />} />
             <Route path="/projects/:projectId" element={<ProjectDetails />} />
+            <Route path="/my-tasks" element={<MyTasks />} />
           </Route>
           <Route path="/features" element={<Features />} />
         </Routes>
