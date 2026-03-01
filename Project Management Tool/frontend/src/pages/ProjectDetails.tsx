@@ -4,11 +4,18 @@ import ConfirmModal from "../components/ConfirmModal";
 import Modal from "../components/Modal";
 import TaskForm from "../components/projects/TaskForm";
 import TaskList from "../components/projects/TaskList";
-import { calculateProjectProgress, calculateProjectStatus, findProjectById, formatDeadline } from "../components/projects/projectUtils";
+import {
+  calculateProjectProgress,
+  calculateProjectStatus,
+  findProjectById,
+  formatDeadline,
+} from "../components/projects/projectUtils";
 import type { ProjectTask, TaskInput } from "../components/projects/types";
 import { useProjects } from "../hooks/useProjects";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
+import { ProjectDetailsPageShimmer } from "../components/PageShimmer";
+import { ArrowLeft } from "lucide-react";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL ?? "";
 
@@ -21,17 +28,29 @@ interface UserSummary {
 const ProjectDetails: React.FC = () => {
   const navigate = useNavigate();
   const { projectId = "" } = useParams();
-  const { projects, addTask, updateTask, deleteTask, updateTaskStatus } = useProjects();
+  const {
+    projects,
+    loading: projectsLoading,
+    addTask,
+    updateTask,
+    deleteTask,
+    updateTaskStatus,
+  } = useProjects();
   const { user } = useAuth();
   const [users, setUsers] = useState<UserSummary[]>([]);
+  const [usersLoading, setUsersLoading] = useState(true);
 
-  const project = useMemo(() => findProjectById(projects, projectId), [projects, projectId]);
+  const project = useMemo(
+    () => findProjectById(projects, projectId),
+    [projects, projectId],
+  );
 
   const [editingTask, setEditingTask] = useState<ProjectTask | null>(null);
   const [deletingTask, setDeletingTask] = useState<ProjectTask | null>(null);
 
   React.useEffect(() => {
     const fetchUsers = async () => {
+      setUsersLoading(true);
       try {
         const response = await fetch(`${backendUrl}/api/get-users`, {
           method: "GET",
@@ -66,19 +85,32 @@ const ProjectDetails: React.FC = () => {
         );
       } catch {
         setUsers([]);
+      } finally {
+        setUsersLoading(false);
       }
     };
 
     void fetchUsers();
   }, []);
 
+  if (projectsLoading || usersLoading) {
+    return <ProjectDetailsPageShimmer />;
+  }
+
   if (!project) {
     return (
       <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto bg-white rounded-2xl border border-gray-100 p-8 text-center">
-          <h1 className="text-2xl font-bold text-gray-900">Project Not Found</h1>
-          <p className="text-gray-600 mt-2">The requested project does not exist or was deleted.</p>
-          <Link to="/projects" className="inline-flex mt-4 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">
+          <h1 className="text-2xl font-bold text-gray-900">
+            Project Not Found
+          </h1>
+          <p className="text-gray-600 mt-2">
+            The requested project does not exist or was deleted.
+          </p>
+          <Link
+            to="/projects"
+            className="inline-flex mt-4 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+          >
             Back to Projects
           </Link>
         </div>
@@ -88,15 +120,20 @@ const ProjectDetails: React.FC = () => {
 
   const progress = calculateProjectProgress(project.tasks);
   const projectStatus = calculateProjectStatus(project.tasks);
-  const teamMemberLabels = users.reduce<Record<string, string>>((accumulator, user) => {
-    accumulator[user.id] = `${user.name} (${user.email})`;
-    return accumulator;
-  }, {});
+  const teamMemberLabels = users.reduce<Record<string, string>>(
+    (accumulator, user) => {
+      accumulator[user.id] = `${user.name} (${user.email})`;
+      return accumulator;
+    },
+    {},
+  );
   const teamMemberDisplay = project.teamMembers.map(
     (memberId) => teamMemberLabels[memberId] ?? memberId,
   );
 
-  const completedTasks = project.tasks.filter((task) => task.status === "Completed").length;
+  const completedTasks = project.tasks.filter(
+    (task) => task.status === "Completed",
+  ).length;
   const userId = typeof user?.id === "string" ? user.id : "";
   const canAddTask = !project.ownerId || project.ownerId === userId;
   const canChangeTaskStatus = (task: ProjectTask) =>
@@ -133,7 +170,9 @@ const ProjectDetails: React.FC = () => {
       } | null;
 
       if (!response.ok || data?.ok === false) {
-        toast.error(data?.message || `Failed to add task (HTTP ${response.status})`);
+        toast.error(
+          data?.message || `Failed to add task (HTTP ${response.status})`,
+        );
         return;
       }
 
@@ -175,7 +214,9 @@ const ProjectDetails: React.FC = () => {
       } | null;
 
       if (!response.ok || data?.ok === false) {
-        toast.error(data?.message || `Failed to update task (HTTP ${response.status})`);
+        toast.error(
+          data?.message || `Failed to update task (HTTP ${response.status})`,
+        );
         return;
       }
 
@@ -211,7 +252,10 @@ const ProjectDetails: React.FC = () => {
       } | null;
 
       if (!response.ok || data?.ok === false) {
-        toast.error(data?.message || `Failed to update task status (HTTP ${response.status})`);
+        toast.error(
+          data?.message ||
+            `Failed to update task status (HTTP ${response.status})`,
+        );
         return;
       }
 
@@ -245,7 +289,9 @@ const ProjectDetails: React.FC = () => {
       } | null;
 
       if (!response.ok || data?.ok === false) {
-        toast.error(data?.message || `Failed to delete task (HTTP ${response.status})`);
+        toast.error(
+          data?.message || `Failed to delete task (HTTP ${response.status})`,
+        );
         return;
       }
 
@@ -264,12 +310,15 @@ const ProjectDetails: React.FC = () => {
           <div>
             <button
               type="button"
-              className="text-sm text-blue-600 hover:text-blue-700 cursor-pointer"
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-blue-200 bg-white text-sm font-medium text-blue-700 hover:bg-blue-50 hover:border-blue-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/60 cursor-pointer transition-colors"
               onClick={() => navigate("/projects")}
             >
-              Back to Projects
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Projects</span>
             </button>
-            <h1 className="text-3xl font-bold text-gray-900 mt-1">{project.name}</h1>
+            <h1 className="text-3xl font-bold text-gray-900 mt-1">
+              {project.name}
+            </h1>
             <p className="text-gray-600 mt-1">{project.description}</p>
           </div>
         </section>
@@ -277,11 +326,15 @@ const ProjectDetails: React.FC = () => {
         <section className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
             <p className="text-sm text-gray-500">Deadline</p>
-            <p className="text-lg font-semibold text-gray-900 mt-1">{formatDeadline(project.deadline)}</p>
+            <p className="text-lg font-semibold text-gray-900 mt-1">
+              {formatDeadline(project.deadline)}
+            </p>
           </div>
           <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
             <p className="text-sm text-gray-500">Project Status</p>
-            <p className="text-lg font-semibold text-gray-900 mt-1">{projectStatus}</p>
+            <p className="text-lg font-semibold text-gray-900 mt-1">
+              {projectStatus}
+            </p>
           </div>
           <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
             <p className="text-sm text-gray-500">Tasks Completed</p>
@@ -291,24 +344,33 @@ const ProjectDetails: React.FC = () => {
           </div>
           <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
             <p className="text-sm text-gray-500">Team Members</p>
-            <p className="text-lg font-semibold text-gray-900 mt-1">{project.teamMembers.length}</p>
+            <p className="text-lg font-semibold text-gray-900 mt-1">
+              {project.teamMembers.length}
+            </p>
           </div>
         </section>
 
         <section className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
           <div className="flex justify-between text-sm mb-1">
-            <span className="text-gray-700 font-medium">Progress (based on completed tasks)</span>
+            <span className="text-gray-700 font-medium">
+              Progress (based on completed tasks)
+            </span>
             <span className="font-semibold text-gray-900">{progress}%</span>
           </div>
           <div className="w-full h-2.5 bg-gray-200 rounded-full overflow-hidden">
-            <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+            <div
+              className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            />
           </div>
         </section>
 
         {canAddTask ? (
           <section className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
             <h2 className="text-xl font-semibold text-gray-900">Add Task</h2>
-            <p className="text-sm text-gray-600 mt-1 mb-4">Create tasks and assign them to project members.</p>
+            <p className="text-sm text-gray-600 mt-1 mb-4">
+              Create tasks and assign them to project members.
+            </p>
             <TaskForm
               mode="create"
               teamMembers={project.teamMembers}
@@ -319,14 +381,20 @@ const ProjectDetails: React.FC = () => {
         ) : null}
 
         <section className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Team Members</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            Team Members
+          </h2>
           <p className="text-sm text-gray-600">
-            {teamMemberDisplay.length > 0 ? teamMemberDisplay.join(", ") : "No members"}
+            {teamMemberDisplay.length > 0
+              ? teamMemberDisplay.join(", ")
+              : "No members"}
           </p>
         </section>
 
         <section className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Task List</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            Task List
+          </h2>
           <TaskList
             tasks={project.tasks}
             assigneeLabels={teamMemberLabels}
@@ -339,7 +407,11 @@ const ProjectDetails: React.FC = () => {
         </section>
       </div>
 
-      <Modal isOpen={Boolean(editingTask)} onClose={() => setEditingTask(null)} panelClassName="max-w-2xl border border-gray-100">
+      <Modal
+        isOpen={Boolean(editingTask)}
+        onClose={() => setEditingTask(null)}
+        panelClassName="max-w-2xl border border-gray-100"
+      >
         <div className="px-6 py-4 border-b border-gray-100">
           <h2 className="text-xl font-semibold text-gray-900">Edit Task</h2>
         </div>

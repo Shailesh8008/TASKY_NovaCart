@@ -13,6 +13,7 @@ import type {
 import { useProjects } from "../hooks/useProjects";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
+import { ProjectsPageShimmer } from "../components/PageShimmer";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL ?? "";
 
@@ -25,9 +26,10 @@ interface UserSummary {
 const ProjectPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { projects, createProject, updateProject, deleteProject } =
+  const { projects, loading: projectsLoading, createProject, updateProject, deleteProject } =
     useProjects();
   const [users, setUsers] = useState<UserSummary[]>([]);
+  const [usersLoading, setUsersLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All" | ProjectStatus>(
@@ -43,6 +45,7 @@ const ProjectPage: React.FC = () => {
 
   React.useEffect(() => {
     const fetchUsers = async () => {
+      setUsersLoading(true);
       try {
         const response = await fetch(`${backendUrl}/api/get-users`, {
           method: "GET",
@@ -77,6 +80,8 @@ const ProjectPage: React.FC = () => {
         );
       } catch {
         setUsers([]);
+      } finally {
+        setUsersLoading(false);
       }
     };
 
@@ -201,6 +206,10 @@ const ProjectPage: React.FC = () => {
       setWait(false);
     }
   };
+
+  if (projectsLoading || usersLoading) {
+    return <ProjectsPageShimmer />;
+  }
 
   return (
     <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">

@@ -155,9 +155,11 @@ const normalizeProject = (input: RawProject): Project | null => {
 
 export const useProjects = () => {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchProjects = async () => {
+      setLoading(true);
       try {
         const response = await fetch(`${backendUrl}/api/my-projects`, {
           method: "GET",
@@ -183,6 +185,8 @@ export const useProjects = () => {
         setProjects(rawProjects.map(normalizeProject).filter((project): project is Project => Boolean(project)));
       } catch {
         setProjects([]);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -192,6 +196,7 @@ export const useProjects = () => {
   const api = useMemo(
     () => ({
       projects,
+      loading,
       createProject: (values: ProjectInput) => {
         const nextProject: Project = {
           id: `p-${Date.now()}`,
@@ -283,7 +288,7 @@ export const useProjects = () => {
         );
       },
     }),
-    [projects],
+    [projects, loading],
   );
 
   return api;

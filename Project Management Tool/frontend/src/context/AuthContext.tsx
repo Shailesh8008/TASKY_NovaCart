@@ -41,6 +41,14 @@ const getStoredUser = () => {
   }
 };
 
+const toAuthUser = (value: unknown): AuthUser | null => {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  return value as AuthUser;
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(() => getStoredUser());
   const [loading, setLoading] = useState(true);
@@ -83,11 +91,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           throw new Error("Failed to validate user");
         }
 
-        const data = (await response.json()) as
-          | AuthUser
-          | { user?: AuthUser | null };
+        const data = (await response.json()) as unknown;
         const nextUser =
-          data && typeof data === "object" && "user" in data ? data.user : data;
+          data && typeof data === "object" && "user" in data
+            ? toAuthUser((data as { user?: unknown }).user)
+            : toAuthUser(data);
 
         if (!cancelled) {
           setPersistedUser(nextUser ?? null);

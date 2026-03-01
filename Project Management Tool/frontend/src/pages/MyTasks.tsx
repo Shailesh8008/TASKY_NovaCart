@@ -4,6 +4,7 @@ import { formatDeadline } from "../components/projects/projectUtils";
 import type { ProjectTask, TaskStatus } from "../components/projects/types";
 import { useAuth } from "../context/AuthContext";
 import { useProjects } from "../hooks/useProjects";
+import { MyTasksPageShimmer } from "../components/PageShimmer";
 
 type FlattenedTask = {
   projectId: string;
@@ -44,7 +45,7 @@ const toTimeValue = (value: string): number => {
 };
 
 const MyTasks: React.FC = () => {
-  const { projects } = useProjects();
+  const { projects, loading } = useProjects();
   const { user } = useAuth();
 
   const myTaskList = useMemo(() => {
@@ -67,6 +68,10 @@ const MyTasks: React.FC = () => {
     tasks.sort((left, right) => toTimeValue(left.task.deadline) - toTimeValue(right.task.deadline));
     return tasks;
   }, [projects, user]);
+
+  if (loading) {
+    return <MyTasksPageShimmer />;
+  }
 
   return (
     <main className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
