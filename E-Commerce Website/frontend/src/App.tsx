@@ -4,6 +4,7 @@ import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
 import About from "./pages/About";
 import Collections from "./pages/Collections";
+import Deals from "./pages/Deals";
 import Home from "./pages/Home";
 
 function App() {
@@ -16,6 +17,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/collections" element={<Collections />} />
+              <Route path="/deals" element={<Deals />} />
               <Route path="/about" element={<About />} />
             </Routes>
           </main>

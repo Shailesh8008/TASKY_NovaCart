@@ -7,7 +7,7 @@ import RegisterModal from "./RegisterModal";
 const navLinks = [
   { label: "Shop", to: "/" },
   { label: "Collections", to: "/collections" },
-  { label: "Deals", to: "/" },
+  { label: "Deals", to: "/deals" },
   { label: "About", to: "/about" },
 ];
 
