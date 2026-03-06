@@ -72,14 +72,14 @@ export default function Navbar() {
             <button
               type="button"
               onClick={openSignIn}
-              className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-900 hover:text-slate-900"
+              className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-900 hover:text-slate-900 cursor-pointer"
             >
               Login
             </button>
             <button
               type="button"
               onClick={openCart}
-              className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700"
+              className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 cursor-pointer"
             >
               Cart (2)
             </button>

@@ -2,9 +2,9 @@ import FeaturedProductGrid from "../components/FeaturedProductGrid";
 
 const categories = [
   { name: "Streetwear", items: "120+ items", color: "bg-amber-100" },
-  { name: "Tech Essentials", items: "80+ items", color: "bg-sky-100" },
-  { name: "Home Living", items: "95+ items", color: "bg-emerald-100" },
-  { name: "Fitness", items: "70+ items", color: "bg-rose-100" },
+  { name: "Tech Essentials", items: "80+ items", color: "bg-orange-100" },
+  { name: "Home Living", items: "95+ items", color: "bg-rose-100" },
+  { name: "Fitness", items: "70+ items", color: "bg-red-100" },
 ];
 
 const benefits = [
@@ -40,11 +40,11 @@ const testimonials = [
 export default function Home() {
   return (
     <div className="mx-auto w-full max-w-7xl px-4 pb-12 pt-8 sm:px-6 lg:px-8">
-      <section className="relative overflow-hidden rounded-3xl bg-slate-900 px-6 py-16 text-white sm:px-10">
-        <div className="absolute right-[-40px] top-[-20px] h-56 w-56 rounded-full bg-cyan-400/20 blur-3xl" />
-        <div className="absolute bottom-[-30px] left-[-20px] h-52 w-52 rounded-full bg-fuchsia-400/20 blur-3xl" />
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-rose-500 via-orange-500 to-amber-400 px-6 py-16 text-white sm:px-10">
+        <div className="absolute right-[-40px] top-[-20px] h-56 w-56 rounded-full bg-amber-200/25 blur-3xl" />
+        <div className="absolute bottom-[-30px] left-[-20px] h-52 w-52 rounded-full bg-rose-200/25 blur-3xl" />
         <div className="relative max-w-2xl space-y-5">
-          <p className="text-sm font-semibold uppercase tracking-widest text-cyan-300">
+          <p className="text-sm font-semibold uppercase tracking-widest text-amber-100">
             New Season Collection
           </p>
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
@@ -55,10 +55,10 @@ export default function Home() {
             people who want quality, speed, and seamless shopping.
           </p>
           <div className="flex flex-wrap gap-3 pt-2">
-            <button className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-100">
+            <button className="rounded-full bg-white px-6 py-3 text-sm font-semibold active:scale-95 transition-all text-slate-900 hover:bg-slate-100 cursor-pointer">
               Shop now
             </button>
-            <button className="rounded-full border border-white/40 px-6 py-3 text-sm font-semibold text-white hover:border-white">
+            <button className="rounded-full border border-white/50 px-6 py-3 text-sm font-semibold text-white hover:border-white cursor-pointer hover:bg-white hover:text-orange-600 active:scale-95 transition-all">
               Explore deals
             </button>
           </div>
@@ -91,26 +91,26 @@ export default function Home() {
 
       <section className="mt-16 grid gap-6 lg:grid-cols-3">
         {benefits.map((benefit) => (
-          <article key={benefit.title} className="rounded-2xl bg-slate-100 p-6">
+          <article key={benefit.title} className="rounded-2xl bg-amber-50 p-6">
             <h3 className="text-lg font-semibold text-slate-900">{benefit.title}</h3>
             <p className="mt-2 text-sm text-slate-600">{benefit.desc}</p>
           </article>
         ))}
       </section>
 
-      <section className="mt-16 rounded-3xl bg-gradient-to-r from-cyan-500 to-blue-600 px-6 py-12 text-white sm:px-10">
+      <section className="mt-16 rounded-3xl bg-gradient-to-r from-rose-500 via-orange-500 to-amber-400 px-6 py-12 text-white sm:px-10">
         <div className="max-w-3xl">
-          <p className="text-sm font-semibold uppercase tracking-widest text-cyan-100">
+          <p className="text-sm font-semibold uppercase tracking-widest text-amber-100">
             Limited Time
           </p>
           <h2 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
             Up to 40% off selected products
           </h2>
-          <p className="mt-3 text-cyan-50">
+          <p className="mt-3 text-amber-50">
             Refresh your setup with handpicked drops and exclusive bundles.
             Offer valid through this week.
           </p>
-          <button className="mt-6 rounded-full bg-white px-6 py-3 text-sm font-semibold text-blue-700 hover:bg-blue-50">
+          <button className="mt-6 rounded-full bg-white px-6 py-3 text-sm font-semibold text-rose-700 hover:bg-rose-50 cursor-pointer active:scale-95 transition-all">
             Grab deals
           </button>
         </div>
@@ -130,18 +130,18 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="mt-16 rounded-3xl bg-slate-900 px-6 py-12 text-center text-white sm:px-10">
+      <section className="mt-16 rounded-3xl bg-gradient-to-r from-rose-500 via-orange-500 to-amber-400 px-6 py-12 text-center text-white sm:px-10">
         <h2 className="text-3xl font-bold tracking-tight">Stay in the loop</h2>
-        <p className="mx-auto mt-3 max-w-2xl text-slate-300">
+        <p className="mx-auto mt-3 max-w-2xl text-amber-50">
           Be the first to know about launches, flash sales, and member-only offers.
         </p>
         <div className="mx-auto mt-6 flex max-w-xl flex-col gap-3 sm:flex-row">
           <input
             type="email"
             placeholder="Enter your email"
-            className="w-full rounded-full border border-slate-700 bg-slate-800 px-5 py-3 text-white placeholder:text-slate-400 focus:border-cyan-400 focus:outline-none"
+            className="w-full rounded-full border border-white/60 bg-white/15 px-5 py-3 text-white placeholder:text-amber-100 focus:border-white focus:outline-none"
           />
-          <button className="rounded-full bg-cyan-400 px-6 py-3 font-semibold text-slate-900 hover:bg-cyan-300">
+          <button className="rounded-full bg-white px-6 py-3 font-semibold text-rose-700 hover:bg-rose-50 cursor-pointer active:scale-95 transition-all">
             Subscribe
           </button>
         </div>

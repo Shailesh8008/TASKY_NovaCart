@@ -39,18 +39,18 @@ export default function FeaturedProductGrid() {
     <section className="mt-16">
       <div className="mb-6 flex items-end justify-between">
         <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Featured picks</h2>
-        <button className="text-sm font-semibold text-slate-600 hover:text-slate-900">
+        <button className="text-sm font-semibold text-slate-600 hover:text-slate-900 cursor-pointer">
           View all
         </button>
       </div>
 
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-6 lg:grid-rows-2">
-        <article className="rounded-3xl border border-slate-200 p-6 shadow-sm transition hover:shadow-md lg:col-span-3 lg:row-span-2">
+        <article className="rounded-3xl border border-slate-200 p-6 shadow-sm transition-all lg:col-span-3 lg:row-span-2 hover:shadow-lg hover:scale-[101%] active:scale-100">
           <div className="flex items-center justify-between">
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
               {featuredProducts[0].tag}
             </span>
-            <button className="text-sm font-semibold text-slate-600 hover:text-slate-900">
+            <button className="text-sm font-semibold text-slate-600 hover:text-slate-900 cursor-pointer">
               + Cart
             </button>
           </div>
@@ -64,13 +64,13 @@ export default function FeaturedProductGrid() {
         {featuredProducts.slice(1).map((product, index) => (
           <article
             key={product.name}
-            className={`rounded-3xl border border-slate-200 p-5 shadow-sm transition hover:shadow-md ${tileSpanClasses[index]}`}
+            className={`rounded-3xl border border-slate-200 p-5 shadow-sm transition hover:shadow-lg hover:scale-[101%] active:scale-100 ${tileSpanClasses[index]}`}
           >
             <div className="flex items-center justify-between">
               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
                 {product.tag}
               </span>
-              <button className="text-sm font-semibold text-slate-600 hover:text-slate-900">
+              <button className="text-sm font-semibold text-slate-600 hover:text-slate-900 cursor-pointer">
                 + Cart
               </button>
             </div>

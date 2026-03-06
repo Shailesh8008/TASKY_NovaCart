@@ -60,7 +60,7 @@ export default function LoginModal({
 
         <button
           type="submit"
-          className="w-full rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
+          className="w-full rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 cursor-pointer"
         >
           Sign in
         </button>
@@ -71,7 +71,7 @@ export default function LoginModal({
         <button
           type="button"
           onClick={onOpenRegister}
-          className="font-semibold text-slate-900 underline-offset-2 hover:underline"
+          className="font-semibold text-slate-900 underline-offset-2 underline cursor-pointer"
         >
           Create an account
         </button>

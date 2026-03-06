@@ -20,7 +20,7 @@ export default function CartModal({
           <p className="text-sm text-slate-600">Your cart is currently empty.</p>
           <button
             type="button"
-            className="w-full rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
+            className="w-full rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 cursor-pointer"
           >
             Continue shopping
           </button>
@@ -33,7 +33,7 @@ export default function CartModal({
           <button
             type="button"
             onClick={onLoginClick}
-            className="w-full rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700"
+            className="w-full rounded-full bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 cursor-pointer"
           >
             Login
           </button>

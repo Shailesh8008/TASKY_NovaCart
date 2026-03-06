@@ -54,7 +54,7 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full border border-slate-200 px-3 py-1 text-sm font-medium text-slate-600 hover:border-slate-900 hover:text-slate-900"
+              className="rounded-full border border-slate-200 px-3 py-1 text-sm font-medium text-slate-600 hover:border-slate-900 hover:text-slate-900 cursor-pointer"
             >
               Close
             </button>
