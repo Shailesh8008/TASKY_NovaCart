@@ -4,8 +4,11 @@ export type Product = {
   id: string;
   name: string;
   price: string;
+  priceValue: number | null;
   imageUrl: string | null;
   tag: string;
+  category: string;
+  status: string;
 };
 
 type ProductsState = {
@@ -41,6 +44,17 @@ function formatPrice(value: unknown): string {
     return value.trim();
   }
   return "Price unavailable";
+}
+
+function parsePriceValue(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const numeric = Number(value.replace(/[^\d.-]/g, ""));
+    return Number.isFinite(numeric) ? numeric : null;
+  }
+  return null;
 }
 
 function extractProductArray(payload: unknown): unknown[] {
@@ -101,12 +115,19 @@ function normalizeProduct(raw: unknown, index: number): Product | null {
     readString(row.brand) ??
     "Featured";
 
+  const category = readString(row.category) ?? "Uncategorized";
+  const status = readString(row.status) ?? "Unknown";
+  const rawPrice = row.price ?? row.cost ?? row.amount;
+
   return {
     id: rawId ?? `${name}-${index}`,
     name,
-    price: formatPrice(row.price ?? row.cost ?? row.amount),
+    price: formatPrice(rawPrice),
+    priceValue: parsePriceValue(rawPrice),
     imageUrl,
     tag,
+    category,
+    status,
   };
 }
 

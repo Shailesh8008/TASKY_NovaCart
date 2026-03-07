@@ -7,6 +7,7 @@ import About from "./pages/About";
 import Collections from "./pages/Collections";
 import Deals from "./pages/Deals";
 import Home from "./pages/Home";
+import Shop from "./pages/Shop";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
 import { fetchProducts } from "./store/productsSlice";
 
@@ -28,6 +29,7 @@ function App() {
           <main>
             <Routes>
               <Route path="/" element={<Home />} />
+              <Route path="/shop" element={<Shop />} />
               <Route path="/collections" element={<Collections />} />
               <Route path="/deals" element={<Deals />} />
               <Route path="/about" element={<About />} />
