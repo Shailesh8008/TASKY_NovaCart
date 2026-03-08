@@ -5,6 +5,13 @@ type LoginPayload = {
   pass: string;
 };
 
+type RegisterPayload = {
+  fname: string;
+  lname?: string;
+  email: string;
+  pass1: string;
+};
+
 export type AuthUser = {
   id: string;
   name: string;
@@ -14,16 +21,20 @@ type AuthState = {
   user: AuthUser | null;
   status: "idle" | "loading" | "succeeded" | "failed";
   loginStatus: "idle" | "loading" | "succeeded" | "failed";
+  registerStatus: "idle" | "loading" | "succeeded" | "failed";
   error: string | null;
   loginError: string | null;
+  registerError: string | null;
 };
 
 const initialState: AuthState = {
   user: null,
   status: "idle",
   loginStatus: "idle",
+  registerStatus: "idle",
   error: null,
   loginError: null,
+  registerError: null,
 };
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -130,6 +141,32 @@ export const loginUser = createAsyncThunk(
   },
 );
 
+export const registerUser = createAsyncThunk(
+  "auth/registerUser",
+  async (payload: RegisterPayload) => {
+    const response = await fetch(`${backendBaseUrl()}/api/reg`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
+
+    const data: unknown = await response.json();
+    const root = asRecord(data);
+    const message = readString(root?.message);
+
+    if (!response.ok) {
+      throw new Error(message ?? `Registration request failed (${response.status})`);
+    }
+
+    if (!root || root.ok !== true) {
+      throw new Error(message ?? "Registration failed.");
+    }
+
+    return message ?? "User registered successfully";
+  },
+);
+
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -159,6 +196,17 @@ const authSlice = createSlice({
       .addCase(loginUser.rejected, (state, action) => {
         state.loginStatus = "failed";
         state.loginError = action.error.message ?? "Login failed.";
+      })
+      .addCase(registerUser.pending, (state) => {
+        state.registerStatus = "loading";
+        state.registerError = null;
+      })
+      .addCase(registerUser.fulfilled, (state) => {
+        state.registerStatus = "succeeded";
+      })
+      .addCase(registerUser.rejected, (state, action) => {
+        state.registerStatus = "failed";
+        state.registerError = action.error.message ?? "Registration failed.";
       });
   },
 });
