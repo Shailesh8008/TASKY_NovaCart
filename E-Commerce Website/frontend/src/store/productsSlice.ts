@@ -38,7 +38,7 @@ function readString(value: unknown): string | null {
 
 function formatPrice(value: unknown): string {
   if (typeof value === "number" && Number.isFinite(value)) {
-    return `$${value}`;
+    return `₹${value}`;
   }
   if (typeof value === "string" && value.trim().length > 0) {
     return value.trim();

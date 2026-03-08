@@ -6,6 +6,7 @@ import Navbar from "./components/Navbar";
 import About from "./pages/About";
 import Collections from "./pages/Collections";
 import Home from "./pages/Home";
+import MyOrders from "./pages/MyOrders";
 import Shop from "./pages/Shop";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
 import { fetchCurrentUser } from "./store/authSlice";
@@ -52,6 +53,7 @@ function App() {
               <Route path="/shop" element={<Shop />} />
               <Route path="/collections" element={<Collections />} />
               <Route path="/about" element={<About />} />
+              <Route path="/my-orders" element={<MyOrders />} />
             </Routes>
           </main>
           <Footer />

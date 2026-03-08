@@ -34,7 +34,7 @@ const collectionCards = [
 const trendingTags = [
   "Spring Drop",
   "Sustainable",
-  "Under $100",
+  "Under ₹100",
   "Best Sellers",
   "Editor Picks",
 ];

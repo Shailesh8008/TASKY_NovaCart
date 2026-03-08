@@ -20,6 +20,57 @@ type UserRecord = {
   role: string;
 };
 
+type PurchasedItem = {
+  productId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  imageUrl: string | null;
+};
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (typeof value !== "object" || value === null) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+}
+
+function readString(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+function readNumber(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function normalizePurchasedItems(items: unknown[]): PurchasedItem[] {
+  return items
+    .map((item) => {
+      const record = asRecord(item);
+      if (!record) {
+        return null;
+      }
+      const productId = readString(record.id) || readString(record.productId);
+      const name = readString(record.name) || "Product";
+      const price = readNumber(record.price);
+      const quantity = Math.max(1, Math.floor(readNumber(record.quantity) || 1));
+      const imageUrl = readString(record.imageUrl) || null;
+
+      if (!productId) {
+        return null;
+      }
+
+      return {
+        productId,
+        name,
+        price,
+        quantity,
+        imageUrl,
+      };
+    })
+    .filter((entry): entry is PurchasedItem => entry !== null);
+}
+
 const checkUser = (req: Request, res: Response) => {
   const user = req.user as MyJwtPayload | undefined;
   return res.json({ ok: true, userId: user?.id });
@@ -188,6 +239,23 @@ const fetchCart = async (req: Request, res: Response) => {
   }
 };
 
+const myOrders = async (req: Request, res: Response) => {
+  try {
+    const authUser = req.user as MyJwtPayload | undefined;
+    const userId = authUser?.id;
+    if (!userId) {
+      return res.json({ ok: false, message: "Unauthorized" });
+    }
+
+    const orders = await orderModel
+      .find({ userId })
+      .sort({ createdAt: -1 });
+    return res.json({ ok: true, data: orders });
+  } catch (error) {
+    return res.json({ ok: false, message: "Internal server error" });
+  }
+};
+
 const checkout = async (
   req: Request<unknown, unknown, { amount?: number; currency?: string; receipt?: string }>,
   res: Response,
@@ -263,15 +331,24 @@ const verifyPayment = async (
     const generatedSignature = hmac.digest("hex");
 
     if (generatedSignature === signature) {
+      const existingCart = await cartModel.findOne({ userId }).lean();
+      const rawItems =
+        existingCart && Array.isArray((existingCart as { CartItems?: unknown[] }).CartItems)
+          ? (existingCart as { CartItems: unknown[] }).CartItems
+          : [];
+      const purchasedItems = normalizePurchasedItems(rawItems);
+
       const rec = new orderModel({
         userId,
         orderId,
         paymentId,
         signature,
         amount,
+        purchasedItems,
         status: "paid",
       });
       await rec.save();
+      await cartModel.updateOne({ userId }, { $set: { CartItems: [] } });
       return res.json({ ok: true, message: "Payment Success" });
     }
 
@@ -301,6 +378,7 @@ const userController = {
   userCart,
   getSearchResult,
   fetchCart,
+  myOrders,
   checkout,
   verifyPayment,
   checkUser,

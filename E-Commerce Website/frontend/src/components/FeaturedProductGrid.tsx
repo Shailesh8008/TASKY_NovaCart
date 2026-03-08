@@ -16,7 +16,7 @@ const fallbackProducts: ProductTile[] = [
   {
     id: "fallback-1",
     name: "Urban Pulse Sneakers",
-    price: "$129",
+    price: "₹129",
     priceValue: 129,
     tag: "Best Seller",
     accent: "from-amber-200 to-orange-100",
@@ -25,7 +25,7 @@ const fallbackProducts: ProductTile[] = [
   {
     id: "fallback-2",
     name: "CloudFit Smart Watch",
-    price: "$199",
+    price: "₹199",
     priceValue: 199,
     tag: "New",
     accent: "from-sky-200 to-cyan-100",
@@ -34,7 +34,7 @@ const fallbackProducts: ProductTile[] = [
   {
     id: "fallback-3",
     name: "Minimal Desk Lamp",
-    price: "$59",
+    price: "₹59",
     priceValue: 59,
     tag: "Popular",
     accent: "from-emerald-200 to-teal-100",
@@ -43,7 +43,7 @@ const fallbackProducts: ProductTile[] = [
   {
     id: "fallback-4",
     name: "Commuter Sling Bag",
-    price: "$79",
+    price: "₹79",
     priceValue: 79,
     tag: "Limited",
     accent: "from-rose-200 to-pink-100",
