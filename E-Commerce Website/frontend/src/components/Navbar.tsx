@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
-import { useAppSelector } from "../store/hooks";
+import { logoutUser } from "../store/authSlice";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 import CartModal from "./CartModal";
 import LoginModal from "./LoginModal";
+import Modal from "./Modal";
 import RegisterModal from "./RegisterModal";
 
 const navLinks = [
@@ -13,13 +16,18 @@ const navLinks = [
 ];
 
 export default function Navbar() {
+  const dispatch = useAppDispatch();
   const [isSignInOpen, setIsSignInOpen] = useState(false);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const user = useAppSelector((state) => state.auth.user);
   const cartCount = useAppSelector((state) =>
     state.cart.items.reduce((sum, item) => sum + item.quantity, 0),
   );
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   const openSignIn = () => setIsSignInOpen(true);
   const closeSignIn = () => setIsSignInOpen(false);
@@ -44,6 +52,46 @@ export default function Navbar() {
   };
 
   const handleLoginSuccess = () => closeSignIn();
+  const toggleUserMenu = () => setIsUserMenuOpen((prev) => !prev);
+  const closeUserMenu = () => setIsUserMenuOpen(false);
+  const openLogoutConfirm = () => {
+    closeUserMenu();
+    setIsLogoutConfirmOpen(true);
+  };
+  const closeLogoutConfirm = () => setIsLogoutConfirmOpen(false);
+  const placeholderAction = (label: string) => {
+    closeUserMenu();
+    toast(`${label} will be added soon.`);
+  };
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      const message = await dispatch(logoutUser()).unwrap();
+      toast.success(message);
+      closeLogoutConfirm();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Logout failed";
+      toast.error(message);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isUserMenuOpen) {
+      return;
+    }
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        closeUserMenu();
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isUserMenuOpen]);
 
   return (
     <>
@@ -71,9 +119,44 @@ export default function Navbar() {
 
           <div className="flex items-center gap-3">
             {user ? (
-              <span className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700">
-                {user.name}
-              </span>
+              <div ref={menuRef} className="relative">
+                <button
+                  type="button"
+                  onClick={toggleUserMenu}
+                  className="flex items-center gap-2 rounded-full border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-900 hover:text-slate-900 cursor-pointer"
+                >
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-900 text-xs font-bold uppercase text-white">
+                    {user.name.slice(0, 1)}
+                  </span>
+                  <span className="hidden sm:inline">{user.name}</span>
+                </button>
+
+                {isUserMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-44 rounded-xl border border-slate-200 bg-white p-1 shadow-lg">
+                    <button
+                      type="button"
+                      onClick={() => placeholderAction("Dashboard")}
+                      className="w-full rounded-lg px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100 cursor-pointer"
+                    >
+                      Dashboard
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => placeholderAction("My Orders")}
+                      className="w-full rounded-lg px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100 cursor-pointer"
+                    >
+                      My Orders
+                    </button>
+                    <button
+                      type="button"
+                      onClick={openLogoutConfirm}
+                      className="w-full rounded-lg px-3 py-2 text-left text-sm text-rose-600 transition hover:bg-rose-50 cursor-pointer"
+                    >
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
             ) : (
               <button
                 type="button"
@@ -112,6 +195,33 @@ export default function Navbar() {
         cartCount={cartCount}
         onLoginClick={openSignInFromCart}
       />
+
+      <Modal
+        isOpen={isLogoutConfirmOpen}
+        onClose={closeLogoutConfirm}
+        title="Confirm logout"
+      >
+        <p className="text-sm text-slate-600">
+          Are you sure you want to logout from your account?
+        </p>
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={closeLogoutConfirm}
+            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-900 hover:text-slate-900 cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={isLoggingOut}
+            onClick={handleLogout}
+            className="rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+          >
+            {isLoggingOut ? "Logging out..." : "Logout"}
+          </button>
+        </div>
+      </Modal>
     </>
   );
 }

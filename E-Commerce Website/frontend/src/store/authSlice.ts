@@ -167,6 +167,27 @@ export const registerUser = createAsyncThunk(
   },
 );
 
+export const logoutUser = createAsyncThunk("auth/logoutUser", async () => {
+  const response = await fetch(`${backendBaseUrl()}/api/logout`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  const data: unknown = await response.json();
+  const root = asRecord(data);
+  const message = readString(root?.message);
+
+  if (!response.ok) {
+    throw new Error(message ?? `Logout request failed (${response.status})`);
+  }
+
+  if (!root || root.ok !== true) {
+    throw new Error(message ?? "Logout failed.");
+  }
+
+  return message ?? "Successfully Logout";
+});
+
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -207,6 +228,11 @@ const authSlice = createSlice({
       .addCase(registerUser.rejected, (state, action) => {
         state.registerStatus = "failed";
         state.registerError = action.error.message ?? "Registration failed.";
+      })
+      .addCase(logoutUser.fulfilled, (state) => {
+        state.user = null;
+        state.loginStatus = "idle";
+        state.loginError = null;
       });
   },
 });
