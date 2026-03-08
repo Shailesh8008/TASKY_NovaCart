@@ -145,7 +145,7 @@ export default function Shop() {
                   <button
                     type="button"
                     onClick={() => handleAddToCart(product)}
-                    className="mt-4 w-full rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 cursor-pointer"
+                    className="mt-5 w-full rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 cursor-pointer active:scale-95"
                   >
                     Add to cart
                   </button>

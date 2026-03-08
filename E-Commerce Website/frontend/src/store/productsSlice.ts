@@ -136,7 +136,7 @@ export const fetchProducts = createAsyncThunk(
   async () => {
     const backendUrl =
       (import.meta.env.VITE_BACKEND_URL as string | undefined)?.trim() ?? "";
-    const endpoint = `${backendUrl.replace(/\/$/, "")}/api/products`;
+    const endpoint = `${backendUrl.replace(/\/$/, "")}/api/getproducts`;
 
     const response = await fetch(endpoint);
     if (!response.ok) {
@@ -144,6 +144,12 @@ export const fetchProducts = createAsyncThunk(
     }
 
     const payload: unknown = await response.json();
+    const body = asRecord(payload);
+    if (body && body.ok === false) {
+      const message = readString(body.message);
+      throw new Error(message ?? "Unable to load products.");
+    }
+
     const rows = extractProductArray(payload);
     return rows
       .map((row, index) => normalizeProduct(row, index))
