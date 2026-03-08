@@ -27,6 +27,7 @@ apiRouter.post(
   "/api/editproduct/:pid",
   auth,
   adminAuth,
+  uploads.single("pimage"),
   adminController.editProduct,
 );
 apiRouter.get("/api/getproducts", adminController.getProducts);

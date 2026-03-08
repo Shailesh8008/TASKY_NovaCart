@@ -91,27 +91,47 @@ const getOneProduct = async (req: Request<{ pid: string }>, res: Response) => {
 };
 
 const editProduct = async (
-  req: Request<
-    { pid: string },
-    unknown,
-    { pname?: string; price?: number; category?: string; status?: string }
-  >,
+  req: FileRequest &
+    Request<
+      { pid: string },
+      unknown,
+      { pname?: string; price?: string | number; category?: string; status?: string }
+    >,
   res: Response,
 ) => {
   try {
     const { pid } = req.params;
     const { pname, price, category, status } = req.body;
-    if (!pname || !price || !category || !status) {
+    const priceValue = typeof price === "string" ? Number(price) : price;
+    if (!pname || !category || !status || !priceValue || Number.isNaN(priceValue)) {
       return res.json({ ok: false, message: "All fields are required" });
     }
 
+    const updatePayload: {
+      pname: string;
+      price: number;
+      category: string;
+      status: string;
+      pimage?: string;
+    } = {
+      pname,
+      price: priceValue,
+      category,
+      status,
+    };
+
+    if (req.file) {
+      const { buffer, originalname } = req.file;
+      const uploadImage = (await imageKit.upload({
+        file: buffer,
+        fileName: `${Date.now()}-${originalname}`,
+        folder: "/products",
+      })) as { url: string };
+      updatePayload.pimage = uploadImage.url;
+    }
+
     const isUpdated = await productModel.findByIdAndUpdate(pid, {
-      $set: {
-        pname,
-        price,
-        category,
-        status,
-      },
+      $set: updatePayload,
     });
 
     if (!isUpdated) {

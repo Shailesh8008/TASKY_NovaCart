@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Toaster } from "react-hot-toast";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Outlet, Route, Routes } from "react-router-dom";
 import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
 import About from "./pages/About";
@@ -9,10 +9,26 @@ import Dashboard from "./pages/Dashboard";
 import Home from "./pages/Home";
 import MyOrders from "./pages/MyOrders";
 import Shop from "./pages/Shop";
+import AdminLayout from "./pages/admin/AdminLayout";
+import AdminOverview from "./pages/admin/AdminOverview";
+import AdminProducts from "./pages/admin/AdminProducts";
+import AdminQueries from "./pages/admin/AdminQueries";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
 import { fetchCurrentUser } from "./store/authSlice";
 import { clearCart, fetchUserCart } from "./store/cartSlice";
 import { fetchProducts } from "./store/productsSlice";
+
+function StorefrontLayout() {
+  return (
+    <div className="min-h-screen bg-white text-slate-900">
+      <Navbar />
+      <main>
+        <Outlet />
+      </main>
+      <Footer />
+    </div>
+  );
+}
 
 function App() {
   const dispatch = useAppDispatch();
@@ -46,20 +62,22 @@ function App() {
   return (
     <>
       <BrowserRouter>
-        <div className="min-h-screen bg-white text-slate-900">
-          <Navbar />
-          <main>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/shop" element={<Shop />} />
-              <Route path="/collections" element={<Collections />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/my-orders" element={<MyOrders />} />
-            </Routes>
-          </main>
-          <Footer />
-        </div>
+        <Routes>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminOverview />} />
+            <Route path="products" element={<AdminProducts />} />
+            <Route path="queries" element={<AdminQueries />} />
+          </Route>
+
+          <Route element={<StorefrontLayout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/shop" element={<Shop />} />
+            <Route path="/collections" element={<Collections />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/my-orders" element={<MyOrders />} />
+          </Route>
+        </Routes>
       </BrowserRouter>
       <Toaster />
     </>
