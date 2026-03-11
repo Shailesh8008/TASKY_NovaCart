@@ -8,6 +8,7 @@ import Collections from "./pages/Collections";
 import Dashboard from "./pages/Dashboard";
 import Home from "./pages/Home";
 import MyOrders from "./pages/MyOrders";
+import NotFound from "./pages/NotFound";
 import Shop from "./pages/Shop";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminOverview from "./pages/admin/AdminOverview";
@@ -78,6 +79,7 @@ function App() {
             <Route index element={<AdminOverview />} />
             <Route path="products" element={<AdminProducts />} />
             <Route path="queries" element={<AdminQueries />} />
+            <Route path="*" element={<NotFound compact />} />
           </Route>
 
           <Route element={<StorefrontLayout />}>
@@ -87,6 +89,7 @@ function App() {
             <Route path="/about" element={<About />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/my-orders" element={<MyOrders />} />
+            <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
       </BrowserRouter>
